@@ -1,0 +1,115 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://src/characters/player.gd" id="1_rp718"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_yewv4"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_76oj4"]
+radius = 0.13
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_dyp2m"]
+size = Vector3(0.44, 0.42, 0.24)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_atpat"]
+size = Vector3(0.38, 0.32, 0.22)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_kqtwu"]
+radius = 0.075
+height = 0.62
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_6eyoc"]
+radius = 0.11
+height = 0.86
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+collision_layer = 2
+collision_mask = 133
+floor_max_angle = 0.80285144
+floor_snap_length = 0.35
+script = ExtResource("1_rp718")
+mesh_root_path = NodePath("Body")
+
+[node name="BodyShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_yewv4")
+
+[node name="Eye" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+
+[node name="CamPivot" type="Node3D" parent="Eye"]
+
+[node name="Camera3D" type="Camera3D" parent="Eye/CamPivot"]
+current = true
+far = 300.0
+
+[node name="WeaponMount" type="Node3D" parent="Eye/CamPivot/Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17, -0.14, -0.3)
+
+[node name="Body" type="Node3D" parent="."]
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="HeadHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.66, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/HeadHB"]
+shape = SubResource("SphereShape3D_76oj4")
+
+[node name="ChestHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.34, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 1
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/ChestHB"]
+shape = SubResource("BoxShape3D_dyp2m")
+
+[node name="StomachHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 2
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/StomachHB"]
+shape = SubResource("BoxShape3D_atpat")
+
+[node name="LimbArmLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.16, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbArmLHB"]
+shape = SubResource("CapsuleShape3D_kqtwu")
+
+[node name="LimbArmRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.16, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbArmRHB"]
+shape = SubResource("CapsuleShape3D_kqtwu")
+
+[node name="LimbLegLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.115, 0.43, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbLegLHB"]
+shape = SubResource("CapsuleShape3D_6eyoc")
+
+[node name="LimbLegRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.115, 0.43, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbLegRHB"]
+shape = SubResource("CapsuleShape3D_6eyoc")

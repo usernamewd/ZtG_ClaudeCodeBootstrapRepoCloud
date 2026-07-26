@@ -490,12 +490,16 @@ static func _weapon_db():
 	return _wdb
 
 
+## Shared read-only miss result, so lookups never allocate (matches WeaponDB).
+const EMPTY_DEF: Dictionary = {}
+
+
 static func weapon_def(id: String) -> Dictionary:
 	if id.is_empty():
-		return {}
+		return EMPTY_DEF
 	var db = _weapon_db()
 	if db == null:
-		return {}
+		return EMPTY_DEF
 	return db.get_def(id)
 
 
@@ -540,7 +544,7 @@ func give_weapon(id: String, make_current := true) -> bool:
 
 ## Equips a GEAR item. Driven by the def when WeaponDB has one
 ## (`armor_points`, `grants_helmet`), by the id otherwise.
-func give_gear(id: String, def := {}) -> bool:
+func give_gear(id: String, def := EMPTY_DEF) -> bool:
 	if def.is_empty():
 		def = weapon_def(id)
 	var applied := false
