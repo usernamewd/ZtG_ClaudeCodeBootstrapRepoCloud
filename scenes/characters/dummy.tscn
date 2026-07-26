@@ -1,0 +1,192 @@
+[gd_scene load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://src/characters/dummy.gd" id="1_pdy0c"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_48jjh"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_60gta"]
+albedo_color = Color(0.86, 0.34, 0.24, 1)
+roughness = 0.8
+
+[sub_resource type="SphereMesh" id="SphereMesh_y0810"]
+radius = 0.13
+height = 0.26
+radial_segments = 16
+rings = 8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lxfyl"]
+albedo_color = Color(0.56, 0.6, 0.66, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_nqg3k"]
+size = Vector3(0.44, 0.42, 0.24)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pv1v8"]
+size = Vector3(0.38, 0.32, 0.22)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_6q8my"]
+radius = 0.075
+height = 0.62
+radial_segments = 10
+rings = 3
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_0ulau"]
+radius = 0.11
+height = 0.86
+radial_segments = 10
+rings = 3
+
+[sub_resource type="BoxMesh" id="BoxMesh_7i3mm"]
+size = Vector3(0.18, 0.05, 0.02)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_txqut"]
+radius = 0.13
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_3ahws"]
+size = Vector3(0.44, 0.42, 0.24)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ul6ks"]
+size = Vector3(0.38, 0.32, 0.22)
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_k0iys"]
+radius = 0.075
+height = 0.62
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_eqdkc"]
+radius = 0.11
+height = 0.86
+
+[node name="Dummy" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 135
+floor_max_angle = 0.80285144
+floor_snap_length = 0.35
+script = ExtResource("1_pdy0c")
+
+[node name="BodyShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_48jjh")
+
+[node name="Eye" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+
+[node name="Mesh" type="Node3D" parent="."]
+
+[node name="HeadMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.66, 0)
+material_override = SubResource("StandardMaterial3D_60gta")
+mesh = SubResource("SphereMesh_y0810")
+
+[node name="ChestMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.34, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("BoxMesh_nqg3k")
+
+[node name="StomachMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("BoxMesh_pv1v8")
+
+[node name="ArmLMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.16, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("CapsuleMesh_6q8my")
+
+[node name="ArmRMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.16, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("CapsuleMesh_6q8my")
+
+[node name="LegLMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.115, 0.43, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("CapsuleMesh_0ulau")
+
+[node name="LegRMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.115, 0.43, 0)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("CapsuleMesh_0ulau")
+
+[node name="VisorMesh" type="MeshInstance3D" parent="Mesh"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68, -0.13)
+material_override = SubResource("StandardMaterial3D_lxfyl")
+mesh = SubResource("BoxMesh_7i3mm")
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="HeadHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.66, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/HeadHB"]
+shape = SubResource("SphereShape3D_txqut")
+
+[node name="ChestHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.34, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 1
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/ChestHB"]
+shape = SubResource("BoxShape3D_3ahws")
+
+[node name="StomachHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.98, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 2
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/StomachHB"]
+shape = SubResource("BoxShape3D_ul6ks")
+
+[node name="LimbArmLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 1.16, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbArmLHB"]
+shape = SubResource("CapsuleShape3D_k0iys")
+
+[node name="LimbArmRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 1.16, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbArmRHB"]
+shape = SubResource("CapsuleShape3D_k0iys")
+
+[node name="LimbLegLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.115, 0.43, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbLegLHB"]
+shape = SubResource("CapsuleShape3D_eqdkc")
+
+[node name="LimbLegRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.115, 0.43, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LimbLegRHB"]
+shape = SubResource("CapsuleShape3D_eqdkc")
+
+[node name="DamageText" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+visible = false
+pixel_size = 0.0016
+billboard = 1
+no_depth_test = true
+modulate = Color(1, 0.86, 0.35, 1)
+outline_modulate = Color(0, 0, 0, 0.85)
+text = "0"
+font_size = 96
+outline_size = 24

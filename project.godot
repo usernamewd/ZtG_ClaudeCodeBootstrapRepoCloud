@@ -22,6 +22,7 @@ config/icon="res://assets/icons/icon.png"
 [autoload]
 
 Settings="*res://src/autoload/settings.gd"
+InputHub="*res://src/autoload/input_hub.gd"
 GameState="*res://src/autoload/game_state.gd"
 Economy="*res://src/autoload/economy.gd"
 Persistence="*res://src/autoload/persistence.gd"
