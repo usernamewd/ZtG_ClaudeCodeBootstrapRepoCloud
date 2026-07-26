@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/tracer.gd" id="1_wxbll"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g3ecb"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+disable_ambient_light = true
+albedo_color = Color(1, 0.86, 0.5, 0.8)
+disable_receive_shadows = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_qkgdi"]
+size = Vector3(0.035, 0.035, 1)
+
+[node name="Tracer" type="Node3D"]
+script = ExtResource("1_wxbll")
+
+[node name="Beam" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = SubResource("StandardMaterial3D_g3ecb")
+cast_shadow = 0
+mesh = SubResource("BoxMesh_qkgdi")

@@ -67,11 +67,14 @@ ACCENT_NAVY = "#2E5FA8"
 # --------------------------------------------------------------------------
 # Body-zone geometry constants (source units, rest T-pose, Z up, ground z=0)
 # --------------------------------------------------------------------------
-Z_BOOT = 0.26        # everything below this is footwear
+Z_BOOT = 0.26        # sole / shoe geometry lives below this
+Z_CUFF = 0.31        # ... and the trouser below this becomes the boot shaft
 Z_HEAD = 1.53        # neck line
+Z_KNEE_LO, Z_KNEE_HI = 0.47, 0.64
+Z_HEM = 0.99         # bottom hem of the torso mesh -> belt line
 X_HAND = 0.97        # wrist: |x| beyond this is the hand
 X_ARM = 0.30         # shoulder joint: |x| beyond this is an arm, not the torso
-BAND_LO, BAND_HI = 0.33, 0.47    # upper-arm ring -> team armband
+X_ELBOW = 0.62       # |x| beyond this is forearm
 
 
 def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
@@ -92,13 +95,19 @@ def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
         if z > Z_HEAD:
             return "Balaclava"
         if ax >= X_ARM:
-            return "Accent" if BAND_LO <= ax <= BAND_HI else "Sleeve"
+            # the pauldron covers the upper arm, so the team band goes on the
+            # forearm where it is actually visible
+            return "Accent" if 0.60 <= ax <= 0.73 else "Sleeve"
         return "Rig"
     if src == "Character_Main":
         return "Fatigue"
     if src == "DarkGrey":
         return "BootSole" if z < Z_BOOT else "Pouch"
     if src == "Pants":
+        if z < Z_CUFF:
+            return "Boot"
+        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.02:
+            return "KneePad"
         return "Trouser"
     if src == "Grey":
         return "Pauldron"
@@ -114,16 +123,28 @@ def zone_havoc(src: str, x: float, y: float, z: float, role: str) -> str:
             return "Balaclava"
         return "Skin"
     if src == "Skin":
-        return "Glove" if ax >= X_HAND else "Skin"
+        return "Skin"                        # bare hands
     if src == "Black":
         if z < Z_BOOT:
             return "Boot"
         if ax >= X_ARM:
-            return "Accent" if BAND_LO <= ax <= BAND_HI else "Sleeve"
+            if 0.36 <= ax <= 0.47:
+                return "Accent"              # armband on the upper sleeve
+            if ax >= X_ELBOW:
+                return "Skin"                # sleeves rolled past the elbow
+            return "Sleeve"
         return "Rig"
     if src == "Enemy_Red":
+        if z <= Z_HEM:
+            return "Rig"                     # leather belt at the jacket hem
+        if y < -0.05 and 1.05 <= z <= 1.44:
+            return "Vest"                    # chest rig across the front
         return "Fatigue"
     if src == "Grey":
+        if z < Z_CUFF:
+            return "Boot"
+        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.02:
+            return "KneePad"
         return "Trouser"
     if src == "DarkGrey":
         return "BootSole" if z < Z_BOOT else "Pouch"
@@ -132,11 +153,13 @@ def zone_havoc(src: str, x: float, y: float, z: float, role: str) -> str:
 
 SURFACE = {
     "Fatigue": "fabric", "Trouser": "fabric", "Sleeve": "fabric",
-    "Rig": "fabric", "Hood": "fabric", "Accent": "fabric",
-    "Balaclava": "fabric", "Pauldron": "fabric", "Pouch": "fabric",
+    "Hood": "fabric", "Accent": "fabric", "Balaclava": "fabric",
+    "Rig": "wood",       # the "wood" treatment reads as grained leather webbing
+    "Vest": "fabric", "Pouch": "fabric", "Pauldron": "concrete",
     "Skin": "skin",
-    "Boot": "rubber", "BootSole": "rubber", "Glove": "rubber",
-    "Helmet": "metal", "Visor": "metal",
+    "Boot": "wood", "BootSole": "rubber", "Glove": "fabric",
+    "KneePad": "rubber",
+    "Helmet": "concrete", "Visor": "metal",
 }
 
 TEAMS = {
@@ -147,28 +170,29 @@ TEAMS = {
         "head": "Character_Enemy_Head",
         "pads": [],
         "zone": zone_havoc,
-        "decimate": {"Body": 0.66, "Head": 0.62},
+        "decimate": {"Body": 0.55, "Head": 0.86},
         "palette_a": {
-            "Hood":      hx("#96522A"),   # rust shemagh hood
-            "Balaclava": hx("#31261B"),
-            "Fatigue":   hx("#8A7A4C"),   # khaki field jacket
-            "Trouser":   hx("#AC9863"),   # lighter desert trousers
-            "Sleeve":    hx("#4E4230"),   # dark olive sleeves
-            "Rig":       hx("#5E3B1E"),   # brown leather webbing
-            "Pouch":     hx("#402C17"),
-            "Boot":      hx("#3C2C1D"),
+            "Hood":      hx("#6B4029"),   # dark rust shemagh over the head
+            "Balaclava": hx("#211A13"),
+            "Fatigue":   hx("#8C7C4E"),   # khaki field jacket
+            "Vest":      hx("#3E2A18"),   # chest rig
+            "Rig":       hx("#5A3A1C"),   # brown leather belt / webbing
+            "Pouch":     hx("#33220F"),
+            "Trouser":   hx("#9C8A58"),   # desert trousers
+            "KneePad":   hx("#3A2E1C"),
+            "Sleeve":    hx("#4E4230"),   # dark olive upper sleeve
+            "Boot":      hx("#402F1F"),
             "BootSole":  hx("#1B1714"),
-            "Glove":     hx("#4C3722"),
             "Skin":      hx("#C08B5C"),
             "Accent":    hx(ACCENT_ORANGE),
         },
-        # bot variant: greener, weathered, darker skin
+        # bot variant: greener, more weathered, darker skin
         "palette_b": {
-            "Hood":      hx("#7C4632"),
+            "Hood":      hx("#57422F"),
             "Fatigue":   hx("#6F7546"),
-            "Trouser":   hx("#8F8B5B"),
+            "Trouser":   hx("#86804F"),
             "Sleeve":    hx("#40402C"),
-            "Rig":       hx("#4E3620"),
+            "Vest":      hx("#37301F"),
             "Skin":      hx("#A5734A"),
         },
     },
@@ -181,26 +205,27 @@ TEAMS = {
         "zone": zone_aegis,
         "decimate": {"Body": 0.52, "Head": 0.40},
         "palette_a": {
-            "Helmet":    hx("#3F4A59"),
-            "Visor":     hx("#15181D"),
-            "Pauldron":  hx("#39434F"),
-            "Fatigue":   hx("#4E5A6B"),   # slate blue-grey plate carrier
-            "Trouser":   hx("#5C6878"),
-            "Sleeve":    hx("#2C333D"),
-            "Rig":       hx("#1B1F25"),   # black nylon webbing
-            "Pouch":     hx("#262B33"),
-            "Boot":      hx("#191A1D"),
-            "BootSole":  hx("#0E0F11"),
-            "Glove":     hx("#202329"),
-            "Balaclava": hx("#1A1D22"),
+            "Helmet":    hx("#414B59"),
+            "Visor":     hx("#14171B"),
+            "Pauldron":  hx("#4A5563"),
+            "Fatigue":   hx("#313944"),   # dark plate carrier over the uniform
+            "Pouch":     hx("#1F242B"),
+            "Rig":       hx("#17191E"),   # black nylon webbing
+            "Sleeve":    hx("#414B58"),   # slate uniform sleeve
+            "Trouser":   hx("#5A6673"),   # lighter slate trousers
+            "KneePad":   hx("#22262D"),
+            "Boot":      hx("#16181C"),
+            "BootSole":  hx("#0C0D0F"),
+            "Glove":     hx("#1A1D22"),
+            "Balaclava": hx("#191C21"),
             "Skin":      hx("#C79A6E"),
             "Accent":    hx(ACCENT_NAVY),
         },
         "palette_b": {
-            "Helmet":    hx("#37424F"),
-            "Fatigue":   hx("#41505F"),
-            "Trouser":   hx("#4E5C6E"),
-            "Sleeve":    hx("#242A33"),
+            "Helmet":    hx("#39424E"),
+            "Fatigue":   hx("#2A323D"),
+            "Sleeve":    hx("#38414D"),
+            "Trouser":   hx("#4E5966"),
             "Skin":      hx("#D8B48C"),
         },
     },
@@ -264,12 +289,14 @@ def build(team: str) -> None:
         d = obj.modifiers.new("Decimate", "DECIMATE")
         d.decimate_type = "COLLAPSE"
         d.ratio = ratio
+        d.use_symmetry = True          # a lopsided face is instantly obvious
+        d.symmetry_axis = "X"
         bpy.context.view_layer.objects.active = obj
         bpy.ops.object.modifier_apply(modifier=d.name)
-        _resharpen(bmesh, obj, radians(32.0))
+        _resharpen(bmesh, obj, radians(25.0))
         print(f"[decimate] {obj.name}: {before} -> {_tris(obj)} tris (ratio {ratio})")
     for p in pads:
-        _resharpen(bmesh, p, radians(32.0))
+        _resharpen(bmesh, p, radians(25.0))
 
     # ---- 3. zone split: source material + body position -> semantic zone --
     zone = cfg["zone"]
@@ -309,11 +336,21 @@ def build(team: str) -> None:
     for name in entries:
         entries[name]["surface"] = SURFACE.get(name, "fabric")
 
+    pal_a = cfg["palette_a"]
+    surf = {k: SURFACE.get(k, "fabric") for k in entries}
+    if os.environ.get("TS_ZONE_DEBUG"):
+        # flat, maximally distinct hue per zone - for checking *where* each zone
+        # landed on the body without art direction getting in the way.
+        import colorsys
+        pal_a = {n: colorsys.hsv_to_rgb(i / max(1, len(entries)), 0.95, 0.9)
+                 for i, n in enumerate(sorted(entries))}
+        surf = {k: "flat" for k in entries}
+        print("[debug] zone-debug palette active")
+
     atlas_a = os.path.join(OUT_DIR, f"{team}_atlas.png")
     atlas_b = os.path.join(OUT_DIR, f"{team}_atlas_b.png")
-    slots = bc.build_atlas_for(objs, atlas_a, overrides=cfg["palette_a"],
-                               surfaces={k: SURFACE.get(k, "fabric") for k in entries})
-    pal_b = dict(cfg["palette_a"])
+    slots = bc.build_atlas_for(objs, atlas_a, overrides=pal_a, surfaces=surf)
+    pal_b = dict(pal_a)
     pal_b.update(cfg["palette_b"])
     slots_b = palette.recolor_atlas(entries, pal_b, atlas_b)
     assert slots == slots_b, "variant B must reuse variant A's slot layout"

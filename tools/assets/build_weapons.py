@@ -312,7 +312,7 @@ WEAPONS: dict = {
 
 "defusekit": dict(
     kind="device", space="proc", src=None, proc="defusekit",
-    length=0.235, axis="y",
+    length=0.24, axis="x",
     note="original tool roll: canvas pouch, buckled flap, wire cutters and a "
          "driver standing in the tool loops (procedural)",
     accs=[],
@@ -864,6 +864,9 @@ def orient(obj, space: str) -> None:
     toonshooter glTF blades  tip +Z, flat +-Y      -> +90 about X then +90 about Y
     ts_upright / proc        already in the working space
     """
+    # The glTF importer leaves objects in QUATERNION rotation mode, where
+    # assigning rotation_euler is silently ignored.
+    obj.rotation_mode = "XYZ"
     if space == "ug":
         obj.rotation_euler = (0, 0, math.radians(-90))
     elif space == "ts_gun":

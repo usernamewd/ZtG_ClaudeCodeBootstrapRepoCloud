@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/weapons/impact.gd" id="1_3y78k"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yr5bu"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+disable_ambient_light = true
+vertex_color_use_as_albedo = true
+disable_receive_shadows = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_4q117"]
+material = SubResource("StandardMaterial3D_yr5bu")
+size = Vector3(0.022, 0.022, 0.022)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t27m6"]
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+disable_ambient_light = true
+albedo_color = Color(0.05, 0.05, 0.06, 0.85)
+disable_receive_shadows = true
+
+[sub_resource type="QuadMesh" id="QuadMesh_j2by6"]
+size = Vector2(0.13, 0.13)
+
+[node name="Impact" type="Node3D"]
+script = ExtResource("1_3y78k")
+
+[node name="Sparks" type="CPUParticles3D" parent="."]
+emitting = false
+lifetime = 0.3
+one_shot = true
+explosiveness = 1.0
+draw_order = 2
+mesh = SubResource("BoxMesh_4q117")
+direction = Vector3(0, 0, 1)
+spread = 34.0
+gravity = Vector3(0, -9, 0)
+initial_velocity_min = 2.0
+initial_velocity_max = 5.5
+damping_min = 1.0
+damping_max = 3.0
+scale_amount_min = 0.6
+scale_amount_max = 1.2
+color = Color(1, 0.85, 0.55, 1)
+
+[node name="Decal" type="MeshInstance3D" parent="."]
+material_override = SubResource("StandardMaterial3D_t27m6")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_j2by6")
