@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dn2p4rukr7ere"
-path="res://.godot/imported/_probe_soldier.glb-8fbadc1a2bf8167f3ea704d93d9e1e69.scn"
+uid="uid://bfk1rbc48t7xt"
+path="res://.godot/imported/aegis.glb-549021b72ab41dcaf41ea204112cd466.scn"
 
 [deps]
 
-source_file="res://assets/characters/_probe_soldier.glb"
-dest_files=["res://.godot/imported/_probe_soldier.glb-8fbadc1a2bf8167f3ea704d93d9e1e69.scn"]
+source_file="res://assets/characters/aegis.glb"
+dest_files=["res://.godot/imported/aegis.glb-549021b72ab41dcaf41ea204112cd466.scn"]
 
 [params]
 

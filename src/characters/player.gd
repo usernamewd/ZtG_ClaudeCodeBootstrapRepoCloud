@@ -54,7 +54,7 @@ const LEAN_BLEND := 7.0
 const LAND_STIFF := 120.0
 const LAND_DAMP := 15.0
 const LAND_MAX := 0.22
-const LAND_PER_SPEED := 0.075        # dip velocity per m/s of impact
+const LAND_PER_SPEED := 0.11         # dip velocity per m/s of impact
 const LAND_IMPULSE_MAX := 1.4
 const JUMP_RISE := 0.35
 
@@ -89,6 +89,10 @@ const M_CAMERA_KICK := &"camera_kick"
 const M_CURRENT_SPREAD := &"current_spread_deg"
 const M_IS_RELOADING := &"is_reloading"
 const SETUP_NAMES: Array[StringName] = [&"setup", &"initialize", &"init_weapon", &"configure", &"equip"]
+const PROP_OWNER: Array[String] = ["character", "owner_char", "owner_character", "holder",
+	"shooter", "wielder", "user", "carrier"]
+const PROP_AIM: Array[String] = ["camera", "cam", "aim_source", "ray_source", "ray_origin",
+	"view_camera", "eye"]
 const RELOAD_NAMES: Array[StringName] = [&"reload", &"try_reload", &"start_reload", &"begin_reload"]
 const HOLD_NAMES: Array[StringName] = [M_SET_TRIGGER, M_SET_FIRING, M_SET_FIRE_HELD, M_TRIGGER]
 
@@ -134,6 +138,8 @@ var _ads_eased: float = 0.0
 var _bob_phase: float = 0.0
 var _bob_amp: float = 0.0
 var _lean: float = 0.0
+var _cam_fx_live: bool = false
+var _applied_fov: float = -1.0
 var _land_offset: float = 0.0
 var _land_vel: float = 0.0
 var _grounded: bool = true
@@ -234,10 +240,13 @@ func _update_ads(delta: float) -> void:
 	else:
 		_ads_t = move_toward(_ads_t, _ads_goal, delta / _ads_time)
 	_ads_eased = _ads_t * _ads_t * (3.0 - 2.0 * _ads_t)
-	_camera.fov = lerpf(_base_fov, _ads_fov, _ads_eased)
+	var f := lerpf(_base_fov, _ads_fov, _ads_eased)
+	if not is_equal_approx(f, _applied_fov):
+		_applied_fov = f
+		_camera.fov = f
 
 
-func _update_look(delta: float) -> void:
+func _update_look(_delta: float) -> void:
 	var look := InputHub.consume_look()
 	if not alive:
 		return
@@ -298,14 +307,22 @@ func _update_camera_feel(delta: float) -> void:
 		want_bob = 0.0
 	_bob_amp += (want_bob - _bob_amp) * (1.0 - exp(-BOB_BLEND * delta))
 
+	var want_lean := -InputHub.move.x * LEAN_DEG * (1.0 - _ads_eased)
+	_lean += (want_lean - _lean) * (1.0 - exp(-LEAN_BLEND * delta))
+	if _bob_amp < 0.0004:
+		_bob_amp = 0.0
+	if absf(_lean) < 0.0004:
+		_lean = 0.0
+
 	var s := sin(_bob_phase)
 	_cam_offset.x = s * BOB_AMP_X * _bob_amp
 	_cam_offset.y = sin(_bob_phase * 2.0) * BOB_AMP_Y * _bob_amp
-	_camera.position = _cam_offset
-
-	var want_lean := -InputHub.move.x * LEAN_DEG * (1.0 - _ads_eased)
-	_lean += (want_lean - _lean) * (1.0 - exp(-LEAN_BLEND * delta))
-	_camera.rotation.z = deg_to_rad(_lean + s * BOB_ROLL_DEG * _bob_amp)
+	var roll := _lean + s * BOB_ROLL_DEG * _bob_amp
+	# Skip the transform write entirely once bob and lean have fully settled.
+	if _cam_fx_live or _cam_offset != Vector3.ZERO or roll != 0.0:
+		_camera.position = _cam_offset
+		_camera.rotation.z = deg_to_rad(roll)
+		_cam_fx_live = _cam_offset != Vector3.ZERO or roll != 0.0
 
 
 func _update_viewmodel(delta: float) -> void:
@@ -357,6 +374,11 @@ func _physics_process(delta: float) -> void:
 	if not alive:
 		_ads_goal = 0.0
 		_send_trigger(false)
+		# Drop the one-shots so a press made while dead does not fire on respawn.
+		InputHub.consume_jump()
+		InputHub.consume_reload()
+		InputHub.consume_switch()
+		InputHub.grenade_cycle_pressed = false
 		move_locomotion(delta, Vector2.ZERO, false, false)
 		_grounded = is_on_floor()
 		return
@@ -516,11 +538,9 @@ func _prime_weapon_properties(w: Node) -> void:
 	_set_if_present(w, "id", current_weapon_id())
 	_set_if_present(w, "def", current_weapon_def())
 	_set_if_present(w, "weapon_def", current_weapon_def())
-	for n in ["character", "owner_char", "owner_character", "holder", "shooter",
-			"wielder", "user", "carrier"]:
+	for n in PROP_OWNER:
 		_set_if_present(w, n, self)
-	for n in ["camera", "cam", "aim_source", "ray_source", "ray_origin",
-			"view_camera", "eye"]:
+	for n in PROP_AIM:
 		_set_if_present(w, n, _camera)
 
 

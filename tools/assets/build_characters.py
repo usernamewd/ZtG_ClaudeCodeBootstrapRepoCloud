@@ -179,7 +179,7 @@ TEAMS = {
         "head": "Head",
         "pads": ["ShoulderPad.L", "ShoulderPad.R"],
         "zone": zone_aegis,
-        "decimate": {"Body": 0.55, "Head": 0.40},
+        "decimate": {"Body": 0.52, "Head": 0.40},
         "palette_a": {
             "Helmet":    hx("#3F4A59"),
             "Visor":     hx("#15181D"),
@@ -317,19 +317,34 @@ def build(team: str) -> None:
     pal_b.update(cfg["palette_b"])
     slots_b = palette.recolor_atlas(entries, pal_b, atlas_b)
     assert slots == slots_b, "variant B must reuse variant A's slot layout"
+    _flip_atlas_rows(atlas_a)
+    _flip_atlas_rows(atlas_b)
     written += [atlas_a, atlas_b]
     print(f"[atlas] {len(slots)} slots: " +
           ", ".join(f"{k}#{v}" for k, v in sorted(slots.items(), key=lambda kv: kv[1])))
 
     # ---- 6. remap UVs into the atlas, collapse to one material -----------
-    bc.atlas_remap(objs, slots, atlas_a, material_name=f"TS_{team}", jitter=0.55)
+    # Godot's glTF importer extracts embedded textures as
+    # "<glb stem>_<gltf image name>.png", and Blender names the glTF image after
+    # the source file. Feeding atlas_remap a copy called plain "atlas.png" makes
+    # the extracted texture land exactly on <team>_atlas.png instead of adding a
+    # duplicate <team>_<team>_atlas.png next to it.
+    import shutil
+    import tempfile
+    tmp = os.path.join(tempfile.gettempdir(), f"ts_atlas_{team}")
+    os.makedirs(tmp, exist_ok=True)
+    tex = os.path.join(tmp, "atlas.png")
+    shutil.copyfile(atlas_a, tex)
+    bc.atlas_remap(objs, slots, tex, material_name=f"TS_{team}", jitter=0.55)
+    for img in bpy.data.images:
+        if img.filepath and os.path.basename(img.filepath) == "atlas.png":
+            img.name = "atlas"
 
     # ---- 7. metric scale + weapon attachment -----------------------------
     bpy.context.view_layer.update()
     height = _world_height(objs)
     f = TARGET_HEIGHT / height
-    arm.scale = (f, f, f)
-    bpy.context.view_layer.update()
+    _apply_metric_scale(bpy, Matrix, arm, objs, f)
     print(f"[scale] source height {height:.3f} -> {TARGET_HEIGHT:.2f} m (x{f:.4f})")
 
     _weapon_mount(bpy, Matrix, Vector, arm)
@@ -358,6 +373,22 @@ def build(team: str) -> None:
 
 
 # --- Blender-side helpers ---------------------------------------------------
+
+def _flip_atlas_rows(path: str) -> None:
+    """Reconcile the two row conventions in the shipped palette pipeline.
+
+    ``palette.build_atlas`` paints slot ``s`` with PIL, whose row 0 is the *top*
+    of the PNG, while ``palette.patch_uv(s)`` returns v measured from the
+    *bottom* (Blender/glTF UV space). Slot 0 therefore ends up painted at the
+    top of the image but sampled from the bottom, and every model comes out
+    reading the unused black slots. Flipping the finished atlas vertically maps
+    PIL row gy onto UV row gy for every slot without touching palette.py.
+    (Reported in the phase notes - the fix belongs in palette.patch_uv.)
+    """
+    from PIL import Image
+    im = Image.open(path)
+    im.transpose(Image.FLIP_TOP_BOTTOM).save(path)
+
 
 def _tris(obj) -> int:
     return sum(max(0, len(p.vertices) - 2) for p in obj.data.polygons)
@@ -470,6 +501,45 @@ def _move_head_faces(bpy, bmesh, body, head, arm) -> int:
     bpy.context.view_layer.objects.active = head
     bpy.ops.object.join()
     return tris
+
+
+def _apply_metric_scale(bpy, Matrix, arm, meshes, f: float) -> None:
+    """Scale the whole character to metres *in the data*, leaving every object
+    transform at identity.
+
+    Putting the factor on the armature object instead looks right in Blender but
+    exports wrong: the glTF exporter bakes the skin root's transform into the
+    vertices AND writes it on the joint nodes, so the character comes out scaled
+    twice. Scaling mesh data + bone rest positions + pose-bone *location* keys
+    (rotations are scale-invariant) is exact and survives the round trip.
+    """
+    S = Matrix.Diagonal((f, f, f)).to_4x4()
+    for o in meshes:
+        o.data.transform(S)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    for eb in arm.data.edit_bones:
+        eb.use_connect = False
+    for eb in arm.data.edit_bones:
+        eb.head = eb.head * f
+        eb.tail = eb.tail * f
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    n = 0
+    for a in bpy.data.actions:
+        for fc in a.fcurves:
+            if not fc.data_path.endswith(".location"):
+                continue
+            n += 1
+            for kp in fc.keyframe_points:
+                kp.co.y *= f
+                kp.handle_left.y *= f
+                kp.handle_right.y *= f
+    print(f"[scale] rescaled {n} location f-curves across {len(bpy.data.actions)} actions")
+    bpy.context.view_layer.update()
 
 
 def _weapon_mount(bpy, Matrix, Vector, arm) -> None:
