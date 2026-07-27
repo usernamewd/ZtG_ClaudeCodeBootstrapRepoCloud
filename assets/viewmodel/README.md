@@ -30,7 +30,7 @@ camera.add_child(vm)        # camera should be on its own viewmodel layer,
                             # near = 0.01
 ```
 
-The rig is pushed 0.26 m forward of the anatomical eye so the support hand can
+The rig is pushed 0.3 m forward of the anatomical eye so the support hand can
 reach the handguard; the shoulders sit below and behind the frustum, so the
 upper arms enter frame from the bottom edge exactly like a normal viewmodel.
 
@@ -58,7 +58,7 @@ If you would rather not rely on the node, the same transform relative to
 `LowerArm.R`'s rest pose, in Godot space, is:
 
 ```gdscript
-transform.origin = Vector3(-0.0750, -0.2500, 0.2950)
+transform.origin = Vector3(-0.0700, -0.2850, 0.4000)
 transform.basis  = Basis(Vector3(0.9662, 0.1218, -0.2274), Vector3(-0.2248, -0.0349, -0.9738), Vector3(-0.1265, 0.9919, -0.0063))
 ```
 
@@ -68,10 +68,10 @@ which is what stops the rifle covering the crosshair):
 
 | weapon marker | position in viewmodel space (Blender axes, metres) |
 |---|---|
-| `GripL` | (-0.008, -0.6521, -0.1147) |
-| `GripR` | (-0.075, -0.295, -0.25) |
-| `Muzzle` | (0.0506, -0.9232, -0.0731) |
-| `Sight` | (-0.0943, -0.3271, -0.0368) |
+| `GripL` | (-0.003, -0.7571, -0.1497) |
+| `GripR` | (-0.07, -0.4, -0.285) |
+| `Muzzle` | (0.0556, -1.0282, -0.1081) |
+| `Sight` | (-0.0893, -0.4321, -0.0718) |
 
 ### Per-weapon offsets
 

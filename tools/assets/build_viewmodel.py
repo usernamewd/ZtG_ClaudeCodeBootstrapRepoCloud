@@ -75,12 +75,12 @@ FPS = 60
 # +Z exactly like every weapon and character in this project.
 # --------------------------------------------------------------------------
 EYE = (0.0, -0.10, 1.55)      # camera point in scaled character space
-RIG_PUSH = 0.26               # shove the whole rig this far forward (-Y) so the
+RIG_PUSH = 0.30               # shove the whole rig this far forward (-Y) so the
                               # support hand can actually reach the handguard;
                               # the shoulders end up behind/below the frustum.
 
 # Where the weapon sits relative to the camera, and how it is angled.
-HOLD_POS = (-0.075, -0.295, -0.250)   # weapon origin (= its GripR marker)
+HOLD_POS = (-0.070, -0.400, -0.285)   # weapon origin (= its GripR marker)
 HOLD_YAW = 13.0               # + swings the muzzle toward the soldier's left
 HOLD_PITCH = -2.0             # + points the muzzle down
 HOLD_ROLL = 7.0               # + rolls the weapon clockwise seen from behind
@@ -1217,12 +1217,13 @@ def _pov_render(bpy, Vector) -> None:
     scn = bpy.context.scene
     cam_data = bpy.data.cameras.new("VMCam")
     cam_data.lens_unit = "FOV"
-    cam_data.angle = math.radians(72.0)
+    cam_data.angle = math.radians(float(os.environ.get("TS_POV_FOV", "65")))
     cam_data.clip_start = 0.01
     cam = bpy.data.objects.new("VMCam", cam_data)
     scn.collection.objects.link(cam)
     cam.location = (0, 0, 0)
-    cam.rotation_euler = (math.radians(90), 0, 0)
+    # look along -Y (the way the player faces) with +Z up
+    cam.rotation_euler = (math.radians(90), 0, math.radians(180))
     scn.camera = cam
     for loc, e in (((1.2, 1.6, 2.0), 900.0), ((-1.6, 1.2, 1.2), 400.0),
                    ((0.0, -2.0, 1.0), 250.0)):
