@@ -220,7 +220,7 @@ WEAPONS: dict = {
           dict(kind="shroud")],
     colors={"Black": "2f2d29", "DarkMetal": "46443d", "Metal": "62605a",
             "DarkWood": "585e44", "Wood": "686f50", "TS_Ammo": "525939",
-            "TS_Accent": "8a6a2c", "Acc_Black": "2b2926",
+            "TS_Accent": "6f5827", "Acc_Black": "2b2926",
             "Acc_DarkMetal": "40443a"},
     surfaces={"Wood": "rubber", "DarkWood": "rubber", "TS_Ammo": "metal",
               "TS_Accent": "metal"},
@@ -737,21 +737,21 @@ def build_bomb(rec):
             parts.append(box(f"bump{sx}{sy}", (0.055, 0.055, H * 1.05),
                              (sx * W * 0.5, sy * D * 0.5, H * 0.5), m_accent))
     pz = H + 0.035
-    parts.append(box("panel", (W * 0.84, D * 0.60, 0.07), (0, -D * 0.16, pz),
-                     m_panel, rot=(math.radians(-7), 0, 0)))
-    parts.append(box("screen_bezel", (W * 0.70, D * 0.22, 0.035),
-                     (0, -D * 0.36, pz + 0.045), m_metal,
-                     rot=(math.radians(-7), 0, 0)))
-    parts.append(box("screen", (W * 0.58, D * 0.15, 0.04),
-                     (0, -D * 0.36, pz + 0.068), m_screen,
-                     rot=(math.radians(-7), 0, 0)))
+    parts.append(box("panel", (W * 0.86, D * 0.52, 0.09), (0, -D * 0.12, pz),
+                     m_panel, rot=(math.radians(-6), 0, 0)))
+    parts.append(box("screen_bezel", (W * 0.70, D * 0.19, 0.04),
+                     (0, -D * 0.29, pz + 0.05), m_metal,
+                     rot=(math.radians(-6), 0, 0)))
+    parts.append(box("screen", (W * 0.58, D * 0.13, 0.045),
+                     (0, -D * 0.29, pz + 0.072), m_screen,
+                     rot=(math.radians(-6), 0, 0)))
     for r in range(4):
         for c in range(3):
-            parts.append(box(f"key{r}{c}", (0.06, 0.06, 0.04),
-                             ((c - 1) * 0.15, -D * 0.14 + r * 0.115,
-                              pz + 0.06 + r * 0.014), m_key,
-                             rot=(math.radians(-7), 0, 0)))
-    parts.append(cyl("lamp", 0.05, 0.06, (W * 0.31, -D * 0.45, pz + 0.065),
+            parts.append(box(f"key{r}{c}", (0.055, 0.05, 0.035),
+                             ((c - 1) * 0.15, -D * 0.10 + r * 0.095,
+                              pz + 0.065 + r * 0.010), m_key,
+                             rot=(math.radians(-6), 0, 0)))
+    parts.append(cyl("lamp", 0.05, 0.06, (W * 0.31, -D * 0.38, pz + 0.07),
                      m_accent, segs=8))
     parts.append(cyl("ant_base", 0.06, 0.10, (W * 0.36, D * 0.40, H + 0.045),
                      m_metal, segs=8))
@@ -834,15 +834,22 @@ def build_defusekit(rec):
             rot=(0, 0, math.radians(9))),
     ]
     # Coiled lead hooked on the right side, and a small circuit tester.
-    parts.append(torus("coil", 0.10, 0.022, (W * 0.5 + 0.02, D * 0.06, H * 0.52),
-                       m_grip, major=12, minor=4, rot=(0, math.radians(90), 0)))
+    parts.append(torus("coil", 0.072, 0.020, (-W * 0.30, D * 0.24, H + 0.09),
+                       m_grip, major=12, minor=4))
     parts += [
-        box("tester", (0.15, 0.05, 0.11), (-W * 0.26, -D * 0.56, H * 0.58),
+        box("tester", (0.13, 0.09, 0.05), (W * 0.06, D * 0.26, H + 0.09),
             m_tool),
-        cyl("tester_lamp", 0.028, 0.04, (-W * 0.26, -D * 0.62, H * 0.72),
-            m_accent, segs=8, rot=(math.radians(90), 0, 0)),
-        box("driver", (0.05, 0.05, 0.30), (W * 0.30, -D * 0.55, H * 0.62),
+        cyl("tester_lamp", 0.026, 0.035, (W * 0.06, D * 0.26, H + 0.13),
+            m_accent, segs=8),
+        box("driver", (0.05, 0.05, 0.28), (W * 0.34, -D * 0.55, H * 0.62),
             m_accent, rot=(math.radians(14), 0, 0)),
+        # A grab loop on the top so the silhouette is never a plain box.
+        box("loop_l", (0.05, 0.05, 0.12), (W * 0.30, D * 0.30, H + 0.10),
+            m_strap),
+        box("loop_r", (0.05, 0.05, 0.12), (W * 0.42, D * 0.30, H + 0.10),
+            m_strap),
+        box("loop_bar", (0.17, 0.05, 0.045), (W * 0.36, D * 0.30, H + 0.17),
+            m_strap),
     ]
     return parts
 

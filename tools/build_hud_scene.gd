@@ -63,7 +63,11 @@ func _build() -> void:
 	if ResourceLoader.exists(TOUCH_SCENE):
 		var packed_touch: PackedScene = load(TOUCH_SCENE)
 		if packed_touch != null:
-			var touch := packed_touch.instantiate()
+			# GEN_EDIT_STATE_INSTANCE keeps the sub-scene's base state, so pack()
+			# stores a bare instance instead of copying every property of
+			# touch_controls.tscn into this file and freezing it.
+			var touch := packed_touch.instantiate(
+				PackedScene.GEN_EDIT_STATE_INSTANCE)
 			touch.name = "TouchControls"
 			root_control.add_child(touch)
 			touch.owner = _root
