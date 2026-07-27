@@ -882,7 +882,9 @@ def _solve_hold(bpy, Matrix, Vector, arm, W, markers) -> None:
     then bake the result into the pose."""
     from mathutils import Quaternion
 
-    targets = []
+    targets = {}
+    palms = {}
+    wants = {}
     for side, marker, twist, shift, axis_map in (
             ("R", "GripR", GRIP_R_TWIST, GRIP_R_SHIFT, "grip"),
             ("L", "GripL", GRIP_L_TWIST, GRIP_L_SHIFT, "handguard")):
@@ -918,7 +920,9 @@ def _solve_hold(bpy, Matrix, Vector, arm, W, markers) -> None:
         e = bpy.data.objects.new(f"_IK.{side}", None)
         bpy.context.scene.collection.objects.link(e)
         e.matrix_world = Matrix.Translation(tail_t) @ rot
-        targets.append(e)
+        targets[side] = e
+        palms[side] = palm
+        wants[side] = grip
 
         pb = arm.pose.bones[f"LowerArm.{side}"]
         c = pb.constraints.new("IK")
@@ -929,6 +933,20 @@ def _solve_hold(bpy, Matrix, Vector, arm, W, markers) -> None:
         c.influence = 1.0
         print(f"[hold] {marker}: target {tuple(round(v, 3) for v in grip)}, "
               f"shoulder reach {(grip - arm.data.bones[f'Shoulder.{side}'].head_local).length:.3f} m")
+
+    # The rotation half of the IK goal fights the position half, so the solver
+    # settles a few centimetres off. Newton-step the targets by the residual --
+    # 4 passes takes both palms to sub-millimetre.
+    for _ in range(6):
+        bpy.context.view_layer.update()
+        worst = 0.0
+        for side, e in targets.items():
+            got = _palm_now(arm, side, palms[side])
+            err = wants[side] - got
+            worst = max(worst, err.length)
+            e.matrix_world = Matrix.Translation(err) @ e.matrix_world
+        if worst < 1e-4:
+            break
 
     bpy.context.view_layer.update()
     bpy.ops.object.select_all(action="DESELECT")
@@ -942,20 +960,23 @@ def _solve_hold(bpy, Matrix, Vector, arm, W, markers) -> None:
         for c in list(pb.constraints):
             pb.constraints.remove(c)
     bpy.ops.object.mode_set(mode="OBJECT")
-    for e in targets:
+    for e in targets.values():
         bpy.data.objects.remove(e, do_unlink=True)
 
     _curl_fingers(arm)
     bpy.context.view_layer.update()
 
     for side, marker in (("R", "GripR"), ("L", "GripL")):
-        _, _, _, palm = _hand_frame(arm, side)
-        pb = arm.pose.bones[f"LowerArm.{side}"]
-        la = arm.data.bones[f"LowerArm.{side}"]
-        got = pb.matrix @ (la.matrix_local.inverted() @ palm)
-        want = W @ Vector(_gltf_to_blender(markers[marker]))
-        print(f"[hold] {marker} palm lands {(got - want).length * 1000:.0f} mm "
+        got = _palm_now(arm, side, palms[side])
+        print(f"[hold] {marker} palm lands {(got - wants[side]).length * 1000:.1f} mm "
               f"from the marker")
+
+
+def _palm_now(arm, side: str, palm_rest):
+    """Current armature-space position of the palm centre."""
+    pb = arm.pose.bones[f"LowerArm.{side}"]
+    la = arm.data.bones[f"LowerArm.{side}"]
+    return pb.matrix @ (la.matrix_local.inverted() @ palm_rest)
 
 
 CURL = {
