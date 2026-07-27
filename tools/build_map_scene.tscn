@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cbuildmapscn01"]
+
+[ext_resource type="Script" path="res://tools/build_map_scene.gd" id="1"]
+
+[node name="BuildMapScene" type="Node"]
+script = ExtResource("1")

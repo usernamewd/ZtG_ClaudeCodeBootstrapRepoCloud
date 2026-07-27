@@ -1,0 +1,174 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/ui/touch_controls.gd" id="1_l8g55"]
+[ext_resource type="Script" path="res://src/ui/virtual_stick.gd" id="2_nk8ty"]
+[ext_resource type="Script" path="res://src/ui/touch_button.gd" id="3_sayjt"]
+
+[node name="TouchControls" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_l8g55")
+slot_ids = PackedStringArray("slot_primary", "slot_secondary", "slot_knife", "slot_grenade")
+
+[node name="Safe" type="Control" parent="."]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Stick" type="Control" parent="Safe"]
+anchors_preset = 0
+script = ExtResource("2_nk8ty")
+
+[node name="Fire" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 168.0
+offset_bottom = 168.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "fire"
+icon = 1
+base_size = Vector2(168, 168)
+hud_offset = Vector2(-28, -28)
+look_passthrough = true
+
+[node name="Ads" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 96.0
+offset_bottom = 96.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "ads"
+icon = 2
+label_text = "ADS"
+base_size = Vector2(96, 96)
+hud_offset = Vector2(-212, -96)
+
+[node name="Crouch" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 96.0
+offset_bottom = 96.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "crouch"
+icon = 4
+base_size = Vector2(96, 96)
+hud_offset = Vector2(-212, -204)
+
+[node name="Jump" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 96.0
+offset_bottom = 96.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "jump"
+icon = 3
+base_size = Vector2(96, 96)
+hud_offset = Vector2(-56, -220)
+
+[node name="Reload" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 88.0
+offset_bottom = 88.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "reload"
+icon = 5
+base_size = Vector2(88, 88)
+hud_offset = Vector2(-336, -40)
+
+[node name="Interact" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 136.0
+offset_bottom = 96.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "interact"
+icon = 6
+label_text = "USE"
+base_size = Vector2(136, 96)
+hud_anchor = Vector2(0.5, 1)
+hud_offset = Vector2(0, -22)
+round_shape = false
+
+[node name="FireLeft" type="Control" parent="Safe"]
+visible = false
+anchors_preset = 0
+offset_right = 132.0
+offset_bottom = 132.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "fire_left"
+icon = 1
+base_size = Vector2(132, 132)
+hud_anchor = Vector2(0, 1)
+hud_offset = Vector2(20, -292)
+look_passthrough = true
+
+[node name="SlotPrimary" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 78.0
+offset_bottom = 62.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "slot_primary"
+icon = 7
+base_size = Vector2(78, 62)
+hud_anchor = Vector2(1, 0)
+hud_offset = Vector2(-282, 22)
+round_shape = false
+
+[node name="SlotSecondary" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 78.0
+offset_bottom = 62.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "slot_secondary"
+icon = 8
+base_size = Vector2(78, 62)
+hud_anchor = Vector2(1, 0)
+hud_offset = Vector2(-196, 22)
+round_shape = false
+
+[node name="SlotKnife" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 78.0
+offset_bottom = 62.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "slot_knife"
+icon = 9
+base_size = Vector2(78, 62)
+hud_anchor = Vector2(1, 0)
+hud_offset = Vector2(-110, 22)
+round_shape = false
+
+[node name="SlotGrenade" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 78.0
+offset_bottom = 62.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "slot_grenade"
+icon = 10
+base_size = Vector2(78, 62)
+hud_anchor = Vector2(1, 0)
+hud_offset = Vector2(-24, 22)
+round_shape = false
+
+[node name="GrenadeCycle" type="Control" parent="Safe"]
+anchors_preset = 0
+offset_right = 78.0
+offset_bottom = 56.0
+mouse_filter = 2
+script = ExtResource("3_sayjt")
+hud_id = "grenade_cycle"
+icon = 11
+base_size = Vector2(78, 56)
+hud_anchor = Vector2(1, 0)
+hud_offset = Vector2(-24, 92)
+round_shape = false

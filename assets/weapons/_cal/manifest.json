@@ -1,0 +1,70 @@
+{
+ "generated_by": "tools/assets/build_weapons.py",
+ "convention": {
+  "space": "barrel +Z, up +Y, weapon-right +X (glTF/Godot space)",
+  "units": "metres",
+  "markers": [
+   "Muzzle",
+   "ShellPort",
+   "GripR",
+   "GripL",
+   "Sight"
+  ],
+  "material": "one atlas-textured material -> one draw call",
+  "tri_budget": 1500
+ },
+ "weapons": {
+  "p9": {
+   "id": "p9",
+   "tp": "res://assets/weapons/p9/tp.glb",
+   "atlas": "res://assets/weapons/p9/p9_atlas.png",
+   "kind": "gun",
+   "length_m": 0.22,
+   "tris": 1200,
+   "atlas_px": 512,
+   "atlas_slots": 5,
+   "origin": "GripR",
+   "markers": {
+    "Muzzle": [
+     0.0,
+     0.09764,
+     0.20703
+    ],
+    "ShellPort": [
+     0.01793,
+     0.09749,
+     0.10803
+    ],
+    "GripR": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "GripL": [
+     0.0,
+     0.0,
+     -0.0
+    ],
+    "Sight": [
+     0.0,
+     0.11314,
+     0.05742
+    ]
+   },
+   "muzzle": [
+    0.0,
+    0.09764,
+    0.20703
+   ],
+   "aabb_size_m": [
+    0.0391,
+    0.1405,
+    0.22
+   ],
+   "sources": [
+    "ultimategun/FBX/Pistol_2.fbx"
+   ],
+   "note": "issue sidearm: polymer frame, parkerised slide, no accessories"
+  }
+ }
+}

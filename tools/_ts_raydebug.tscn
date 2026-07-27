@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://craydebug001"]
+
+[ext_resource type="Script" path="res://tools/_ts_raydebug.gd" id="1"]
+
+[node name="RayDebug" type="Node"]
+script = ExtResource("1")

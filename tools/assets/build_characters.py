@@ -68,9 +68,9 @@ ACCENT_NAVY = "#2E5FA8"
 # Body-zone geometry constants (source units, rest T-pose, Z up, ground z=0)
 # --------------------------------------------------------------------------
 Z_BOOT = 0.26        # sole / shoe geometry lives below this
-Z_CUFF = 0.31        # ... and the trouser below this becomes the boot shaft
+Z_CUFF = 0.28        # ... and the trouser below this becomes the boot shaft
 Z_HEAD = 1.53        # neck line
-Z_KNEE_LO, Z_KNEE_HI = 0.47, 0.64
+Z_KNEE_LO, Z_KNEE_HI = 0.50, 0.61
 Z_HEM = 0.99         # bottom hem of the torso mesh -> belt line
 X_HAND = 0.97        # wrist: |x| beyond this is the hand
 X_ARM = 0.30         # shoulder joint: |x| beyond this is an arm, not the torso
@@ -79,16 +79,19 @@ X_ELBOW = 0.62       # |x| beyond this is forearm
 
 def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
     ax = abs(x)
-    if role == "head":                       # the helmet/goggles shell
+    # `Head` holds the helmet shell *and* the skull that was lifted out of Body
+    if role == "head":
+        if src == "Skin":
+            return "Skin"                    # face
         if src == "Character_Main":
             return "Helmet"
         if src == "Grey":
             return "Accent"                  # band around the helmet
-        return "Visor"
+        return "Balaclava"                   # balaclava + goggle strap
     if role == "pad":
         return "Pauldron"
     if src == "Skin":
-        return "Glove" if ax >= X_HAND else "Skin"
+        return "Glove" if ax >= 0.88 else "Sleeve"
     if src == "Black":
         if z < Z_BOOT:
             return "Boot"
@@ -106,7 +109,7 @@ def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
     if src == "Pants":
         if z < Z_CUFF:
             return "Boot"
-        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.02:
+        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.05:
             return "KneePad"
         return "Trouser"
     if src == "Grey":
@@ -118,42 +121,43 @@ def zone_havoc(src: str, x: float, y: float, z: float, role: str) -> str:
     ax = abs(x)
     if role == "head":
         if src == "Enemy_Red":
-            return "Hood"
+            # dark hood over the crown, lighter shemagh wrapped round the face
+            # and neck - two tones stop the head reading as one bald dome
+            return "Hood" if z >= 1.78 else "Wrap"
         if src == "Black":
             return "Balaclava"
-        return "Skin"
+        return "Visor"                       # narrow eye slot
     if src == "Skin":
-        return "Skin"                        # bare hands
+        return "Skin"                        # bare forearms and hands
     if src == "Black":
         if z < Z_BOOT:
             return "Boot"
+        if z > Z_HEAD:
+            return "Balaclava"               # collar under the hood
         if ax >= X_ARM:
-            if 0.36 <= ax <= 0.47:
-                return "Accent"              # armband on the upper sleeve
-            if ax >= X_ELBOW:
-                return "Skin"                # sleeves rolled past the elbow
-            return "Sleeve"
-        return "Rig"
-    if src == "Enemy_Red":
+            return "Accent" if 0.33 <= ax <= 0.52 else "Sleeve"
+        return "Rig"                         # webbing straps on the torso
+    if src == "Character_Main":
         if z <= Z_HEM:
             return "Rig"                     # leather belt at the jacket hem
-        if y < -0.05 and 1.05 <= z <= 1.44:
-            return "Vest"                    # chest rig across the front
+        if y < -0.02 and 1.14 <= z <= 1.42:
+            return "Vest"                    # chest rig band across the front
         return "Fatigue"
-    if src == "Grey":
-        if z < Z_CUFF:
-            return "Boot"
-        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.02:
-            return "KneePad"
-        return "Trouser"
     if src == "DarkGrey":
         return "BootSole" if z < Z_BOOT else "Pouch"
+    if src == "Pants":
+        if z < Z_CUFF:
+            return "Boot"
+        if Z_KNEE_LO <= z <= Z_KNEE_HI and y < -0.05:
+            return "KneePad"
+        return "Trouser"
     return "Fatigue"
 
 
 SURFACE = {
     "Fatigue": "fabric", "Trouser": "fabric", "Sleeve": "fabric",
-    "Hood": "fabric", "Accent": "fabric", "Balaclava": "fabric",
+    "Hood": "fabric", "Wrap": "fabric", "Accent": "fabric",
+    "Balaclava": "fabric",
     "Rig": "wood",       # the "wood" treatment reads as grained leather webbing
     "Vest": "fabric", "Pouch": "fabric", "Pauldron": "concrete",
     "Skin": "skin",
@@ -165,35 +169,39 @@ SURFACE = {
 TEAMS = {
     # attackers / bomb carriers - hooded desert raider silhouette
     "havoc": {
-        "blend": f"{PACK}/Character_Enemy.blend",
-        "body": "Character_Enemy",
-        "head": "Character_Enemy_Head",
-        "pads": [],
+        "blend": f"{PACK}/Character_Soldier.blend",
+        "body": "Body",
+        "head": "Head",                        # helmet, replaced by the hood
+        "pads": [],                            # no pauldrons -> slimmer read
+        "graft_head": (f"{PACK}/Character_Enemy.blend", "Character_Enemy_Head"),
         "zone": zone_havoc,
-        "decimate": {"Body": 0.55, "Head": 0.86},
+        "decimate": {"Body": 0.52, "Head": 0.80},
         "palette_a": {
-            "Hood":      hx("#6B4029"),   # dark rust shemagh over the head
-            "Balaclava": hx("#211A13"),
-            "Fatigue":   hx("#8C7C4E"),   # khaki field jacket
-            "Vest":      hx("#3E2A18"),   # chest rig
-            "Rig":       hx("#5A3A1C"),   # brown leather belt / webbing
-            "Pouch":     hx("#33220F"),
-            "Trouser":   hx("#9C8A58"),   # desert trousers
-            "KneePad":   hx("#3A2E1C"),
-            "Sleeve":    hx("#4E4230"),   # dark olive upper sleeve
-            "Boot":      hx("#402F1F"),
-            "BootSole":  hx("#1B1714"),
-            "Skin":      hx("#C08B5C"),
+            "Hood":      hx("#4A2C1B"),   # dark rust hood over the crown
+            "Wrap":      hx("#7A6444"),   # tan shemagh round the face/neck
+            "Balaclava": hx("#1D1710"),
+            "Visor":     hx("#141110"),   # shadowed eye slot
+            "Fatigue":   hx("#6E6139"),   # khaki field jacket
+            "Vest":      hx("#2C1F12"),   # chest rig
+            "Rig":       hx("#4E3018"),   # brown leather belt / webbing
+            "Pouch":     hx("#2A1C0C"),
+            "Trouser":   hx("#857449"),   # desert trousers
+            "KneePad":   hx("#2A2015"),
+            "Sleeve":    hx("#3E3426"),   # dark olive upper sleeve
+            "Boot":      hx("#35271A"),
+            "BootSole":  hx("#17130F"),
+            "Skin":      hx("#A87550"),
             "Accent":    hx(ACCENT_ORANGE),
         },
         # bot variant: greener, more weathered, darker skin
         "palette_b": {
-            "Hood":      hx("#57422F"),
-            "Fatigue":   hx("#6F7546"),
-            "Trouser":   hx("#86804F"),
-            "Sleeve":    hx("#40402C"),
-            "Vest":      hx("#37301F"),
-            "Skin":      hx("#A5734A"),
+            "Hood":      hx("#3B2E20"),
+            "Wrap":      hx("#6A6242"),
+            "Fatigue":   hx("#57603A"),
+            "Trouser":   hx("#6F6B42"),
+            "Sleeve":    hx("#333323"),
+            "Vest":      hx("#26210F"),
+            "Skin":      hx("#8E6440"),
         },
     },
     # defenders - helmeted, pauldroned, plate-carrier silhouette
@@ -203,11 +211,11 @@ TEAMS = {
         "head": "Head",
         "pads": ["ShoulderPad.L", "ShoulderPad.R"],
         "zone": zone_aegis,
-        "decimate": {"Body": 0.52, "Head": 0.40},
+        "decimate": {"Body": 0.53, "Head": 0.48},
         "palette_a": {
             "Helmet":    hx("#414B59"),
             "Visor":     hx("#14171B"),
-            "Pauldron":  hx("#4A5563"),
+            "Pauldron":  hx("#525E6C"),
             "Fatigue":   hx("#313944"),   # dark plate carrier over the uniform
             "Pouch":     hx("#1F242B"),
             "Rig":       hx("#17191E"),   # black nylon webbing
@@ -218,7 +226,7 @@ TEAMS = {
             "BootSole":  hx("#0C0D0F"),
             "Glove":     hx("#1A1D22"),
             "Balaclava": hx("#191C21"),
-            "Skin":      hx("#C79A6E"),
+            "Skin":      hx("#B78A62"),
             "Accent":    hx(ACCENT_NAVY),
         },
         "palette_b": {
@@ -226,7 +234,7 @@ TEAMS = {
             "Fatigue":   hx("#2A323D"),
             "Sleeve":    hx("#38414D"),
             "Trouser":   hx("#4E5966"),
-            "Skin":      hx("#D8B48C"),
+            "Skin":      hx("#C9A279"),
         },
     },
 }
@@ -283,8 +291,46 @@ def build(team: str) -> None:
         pb.scale = (1, 1, 1)
     bpy.context.view_layer.update()
 
-    # ---- 2. decimate to budget, then re-derive sharp edges ---------------
-    for obj, ratio in ((body, cfg["decimate"]["Body"]), (head, cfg["decimate"]["Head"])):
+    # ---- 2. one skinned Body + one skinned Head --------------------------
+    # The stock helmet / shoulder pads are *bone parented*; convert them to
+    # real skinning so they can be joined without changing how they deform.
+    if head.parent_type == "BONE":
+        _bone_parent_to_skin(bpy, Matrix, head, arm, head.parent_bone)
+    for p in pads:
+        if p.parent_type == "BONE":
+            _bone_parent_to_skin(bpy, Matrix, p, arm, p.parent_bone)
+
+    graft = cfg.get("graft_head")
+    if graft:
+        # Both teams use the Soldier body (it is the one with a plate carrier,
+        # mag pouches and a belt as real geometry). Havoc swaps the helmet for
+        # the Enemy character's hood, which rides the *same* 43-bone rig, so the
+        # two teams read apart instantly at distance without a second body mesh.
+        bpy.data.objects.remove(head, do_unlink=True)
+        head = _graft_head(bpy, arm, graft[0], graft[1])
+        print(f"[graft] head {graft[1]!r} appended from {os.path.basename(graft[0])}")
+
+    # On the Soldier the actual head (face + balaclava) lives inside `Body`.
+    # Aegis moves it into `Head` so hiding `Head` in first person hides all of
+    # it; Havoc drops it, because the grafted hood is a closed head already.
+    moved = _move_head_faces(bpy, bmesh, body, head, arm,
+                             discard=bool(graft))
+    if moved:
+        verb = "discarded" if graft else "moved into Head"
+        print(f"[split] {moved} head-weighted tris {verb}")
+    if pads:
+        bc.join_meshes([body] + pads, "Body")
+        body = bpy.data.objects["Body"]
+        print("[join] shoulder pads merged into Body")
+
+    for o in (body, head):
+        if not any(m.type == "ARMATURE" for m in o.modifiers):
+            m = o.modifiers.new("Armature", "ARMATURE")
+            m.object = arm
+
+    # ---- 3. decimate to budget, then re-derive sharp edges ---------------
+    for obj in (body, head):
+        ratio = cfg["decimate"][obj.name]
         before = _tris(obj)
         d = obj.modifiers.new("Decimate", "DECIMATE")
         d.decimate_type = "COLLAPSE"
@@ -295,39 +341,12 @@ def build(team: str) -> None:
         bpy.ops.object.modifier_apply(modifier=d.name)
         _resharpen(bmesh, obj, radians(25.0))
         print(f"[decimate] {obj.name}: {before} -> {_tris(obj)} tris (ratio {ratio})")
-    for p in pads:
-        _resharpen(bmesh, p, radians(25.0))
 
-    # ---- 3. zone split: source material + body position -> semantic zone --
-    zone = cfg["zone"]
+    # ---- 4. zone split: source material + body position -> semantic zone --
     counts = {}
-    for obj, role in [(body, "body"), (head, "head")] + [(p, "pad") for p in pads]:
-        _zone_split(bpy, obj, zone, role, counts)
+    _zone_split(bpy, body, cfg["zone"], "body", counts)
+    _zone_split(bpy, head, cfg["zone"], "head", counts)
     print("[zones] " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
-
-    # ---- 4. one skinned Body + one skinned Head --------------------------
-    # The stock helmet / shoulder pads are *bone parented*; convert them to
-    # real skinning so they can be joined without changing how they deform.
-    if head.parent_type == "BONE":
-        _bone_parent_to_skin(bpy, Matrix, head, arm, head.parent_bone)
-    for p in pads:
-        if p.parent_type == "BONE":
-            _bone_parent_to_skin(bpy, Matrix, p, arm, p.parent_bone)
-
-    # On the Soldier the actual head (face + balaclava) lives inside `Body`;
-    # move it into `Head` so hiding `Head` in first person hides all of it.
-    moved = _move_head_faces(bpy, bmesh, body, head, arm)
-    if moved:
-        print(f"[split] moved {moved} head-weighted faces from Body into Head")
-    if pads:
-        bc.join_meshes([body] + pads, "Body")
-        body = bpy.data.objects["Body"]
-        print(f"[join] shoulder pads merged into Body")
-
-    for o in (body, head):
-        if not any(m.type == "ARMATURE" for m in o.modifiers):
-            m = o.modifiers.new("Armature", "ARMATURE")
-            m.object = arm
 
     objs = [body, head]
 
@@ -342,8 +361,14 @@ def build(team: str) -> None:
         # flat, maximally distinct hue per zone - for checking *where* each zone
         # landed on the body without art direction getting in the way.
         import colorsys
-        pal_a = {n: colorsys.hsv_to_rgb(i / max(1, len(entries)), 0.95, 0.9)
-                 for i, n in enumerate(sorted(entries))}
+        pal_a = {}
+        for i, n in enumerate(sorted(entries)):
+            h = (i * 0.618034) % 1.0          # golden ratio: neighbours stay far apart
+            s = 1.0 if i % 2 == 0 else 0.55
+            v = 0.95 if i % 3 else 0.45
+            pal_a[n] = colorsys.hsv_to_rgb(h, s, v)
+            print(f"[debug] {n:10s} h={h:.2f} s={s} v={v} "
+                  f"rgb={tuple(round(c, 2) for c in pal_a[n])}")
         surf = {k: "flat" for k in entries}
         print("[debug] zone-debug palette active")
 
@@ -445,10 +470,46 @@ def _resharpen(bmesh, obj, angle: float) -> None:
     bm.free()
 
 
+def _base_name(name: str) -> str:
+    """'Black.001' -> 'Black' (appending from a second .blend suffixes names)."""
+    head, _, tail = name.rpartition(".")
+    return head if head and tail.isdigit() and len(tail) == 3 else name
+
+
+def _graft_head(bpy, arm, blend_path: str, obj_name: str):
+    """Append a head mesh from another character .blend and re-target it onto
+    this scene's armature. Every ToonShooter character shares one 43-bone rig
+    with identical rest positions, so the vertex groups line up by name."""
+    actions_before = {a.name for a in bpy.data.actions}
+    objs_before = {o.name for o in bpy.data.objects}
+    directory = os.path.join(blend_path, "Object") + os.sep
+    bpy.ops.wm.append(filepath=os.path.join(directory, obj_name),
+                      directory=directory, filename=obj_name,
+                      link=False, autoselect=False, active_collection=True)
+    new = [o for o in bpy.data.objects if o.name not in objs_before]
+
+    head = next(o for o in new if o.type == "MESH")
+    head.parent = arm
+    head.parent_type = "OBJECT"
+    for m in list(head.modifiers):
+        if m.type == "NODES":
+            head.modifiers.remove(m)
+        elif m.type == "ARMATURE":
+            m.object = arm
+    for o in new:                       # the appended duplicate armature
+        if o.type == "ARMATURE":
+            bpy.data.objects.remove(o, do_unlink=True)
+    for a in list(bpy.data.actions):    # ... and its duplicate action set
+        if a.name not in actions_before:
+            bpy.data.actions.remove(a)
+    head.name = "Head"
+    return head
+
+
 def _zone_split(bpy, obj, zone_fn, role: str, counts: dict) -> None:
     """Re-assign every polygon to a semantic zone material."""
     me = obj.data
-    src = [m.name if m else "None" for m in me.materials]
+    src = [_base_name(m.name) if m else "None" for m in me.materials]
     mw = obj.matrix_world
     zones = []
     for p in me.polygons:
@@ -497,9 +558,11 @@ def _bone_parent_to_skin(bpy, Matrix, obj, arm, bone_name: str) -> None:
     bpy.context.view_layer.update()
 
 
-def _move_head_faces(bpy, bmesh, body, head, arm) -> int:
+def _move_head_faces(bpy, bmesh, body, head, arm, discard: bool = False) -> int:
     """Move the polygons of `body` that are dominated by the Head bone into
-    `head`, so `Head` is the whole head (skull + gear) for first-person hiding."""
+    `head`, so `Head` is the whole head (skull + gear) for first-person hiding.
+    With ``discard=True`` they are deleted instead (the grafted hood already is
+    a closed head, so the original skull would just be hidden geometry)."""
     me = body.data
     gname = {g.index: g.name for g in body.vertex_groups}
     if "Head" not in gname.values():
@@ -527,11 +590,14 @@ def _move_head_faces(bpy, bmesh, body, head, arm) -> int:
     bpy.ops.mesh.separate(type="SELECTED")
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    piece = [o for o in bpy.context.selected_objects if o not in (body,)]
-    piece = [o for o in piece if o.name.startswith("Body")]
+    piece = [o for o in bpy.context.selected_objects
+             if o is not body and o.name.startswith("Body")]
     if not piece:
         return 0
     part = piece[0]
+    if discard:
+        bpy.data.objects.remove(part, do_unlink=True)
+        return tris
     bpy.ops.object.select_all(action="DESELECT")
     part.select_set(True)
     head.select_set(True)
