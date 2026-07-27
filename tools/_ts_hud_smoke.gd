@@ -105,7 +105,7 @@ func _ready() -> void:
 	var amm: Control = _hud.get_node("Root/Widgets/Ammo")
 	_check(vit.position.x > 0.0 and vit.position.y > 300.0,
 		"vitals bottom-left at " + str(vit.position))
-	_check(amm.position.x > 800.0 and amm.position.y > 300.0,
+	_check(amm.position.x > 800.0 and amm.position.y > 200.0,
 		"ammo bottom-right at " + str(amm.position))
 
 	# Exercise every signal path.
@@ -140,29 +140,55 @@ func _check(ok: bool, what: String) -> void:
 		printerr("  FAIL ", what)
 
 
+func _shot(name: String) -> void:
+	var img := get_viewport().get_texture().get_image()
+	img.save_png("user://hud_%s.png" % name)
+	print("[hud_smoke] saved hud_%s.png" % name)
+
+
 func _process(_d: float) -> void:
 	_frames += 1
-	if _frames == 20:
-		_fake.mag = 3
-		_fake.health = 18.0
-		_fake.armor = 0.0
-		_fake.hud_state_changed.emit()
-		_fake.wpn.spread = 4.5
-	if _frames == 40:
-		var img := get_viewport().get_texture().get_image()
-		img.save_png("user://hud_smoke.png")
-		print("[hud_smoke] saved ", ProjectSettings.globalize_path("user://hud_smoke.png"))
-		# knife mode
-		_fake.def = {"display_name": "Knife"}
-		_fake.hud_state_changed.emit()
-	if _frames == 50:
-		_fake.def = {"mag": 30, "reserve": 90}
-		_fake.current_slot = 3
-		_fake.hud_state_changed.emit()
-	if _frames >= 60:
-		if _fails.is_empty():
-			print("[hud_smoke] ALL OK")
-			get_tree().quit(0)
-		else:
-			printerr("[hud_smoke] FAILURES: ", _fails.size())
-			get_tree().quit(1)
+	match _frames:
+		8:
+			_fake.last_damage_dir = Vector3(1, 0, 0)
+			_fake.damaged.emit(34.0, 1, 3)
+			_fake.last_damage_dir = Vector3(0, 0, 1)
+			_fake.damaged.emit(12.0, 3, 4)
+			_fake.last_damage_dir = Vector3(-0.7, 0, -0.7)
+			_fake.damaged.emit(58.0, 0, 5)
+			_fake.hit_marker.emit(0, false)
+		10:
+			_shot("a_hit_head")
+		12:
+			_fake.hit_marker.emit(1, true)
+		14:
+			_shot("b_kill")
+		16:
+			_fake.mag = 3
+			_fake.health = 18.0
+			_fake.armor = 0.0
+			_fake.hud_state_changed.emit()
+			_fake.wpn.spread = 4.5
+			_fake.wpn.reload_started.emit(2.4)
+		20:
+			_shot("c_reload_low")
+		24:
+			_fake.def = {"display_name": "Combat Knife"}
+			_fake.hud_state_changed.emit()
+		28:
+			_shot("d_knife")
+		32:
+			_fake.def = {"mag": 30, "reserve": 90}
+			_fake.current_slot = 3
+			_fake.health = 100.0
+			_fake.armor = 100.0
+			_fake.hud_state_changed.emit()
+		36:
+			_shot("e_grenade")
+		40:
+			if _fails.is_empty():
+				print("[hud_smoke] ALL OK")
+				get_tree().quit(0)
+			else:
+				printerr("[hud_smoke] FAILURES: ", _fails.size())
+				get_tree().quit(1)

@@ -114,7 +114,7 @@ WEAPONS: dict = {
     length=0.235, axis="y",
     note="large-frame hand cannon: blued steel over a desert tan polymer frame",
     accs=[],
-    colors={"Black": "2e2b2a", "Metal": "3f4a5c", "LightMetal": "a5885a"},
+    colors={"Black": "2e2b2a", "Metal": "44464f", "LightMetal": "9a7f52"},
     surfaces={"Black": "rubber", "LightMetal": "rubber"},
 ),
 
@@ -125,7 +125,7 @@ WEAPONS: dict = {
          "underbarrel light module",
     accs=[dict(src="ultimategun/FBX/Accessories/Flashlight.fbx",
                mount="under_barrel", along=0.74, drop=0.14, fit_width=0.78)],
-    colors={"Black": "2e2b28", "Metal": "55524d", "LightMetal": "aeaba4",
+    colors={"Black": "2e2b28", "Metal": "54514b", "LightMetal": "9d9a93",
             "Acc_Black": "302d29", "Acc_Glass": "e8eecf"},
     surfaces={"Black": "rubber", "Acc_Glass": "flat", "Acc_Black": "rubber"},
 ),

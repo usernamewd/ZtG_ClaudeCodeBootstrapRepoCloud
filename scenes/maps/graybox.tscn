@@ -56,7 +56,7 @@ albedo_color = Color(0.8, 0.56, 0.26, 1)
 roughness = 0.8
 
 [sub_resource type="BoxMesh" id="BoxMesh_2ma02"]
-size = Vector3(96, 1.1, 0.5)
+size = Vector3(40, 1.1, 0.5)
 
 [sub_resource type="BoxMesh" id="BoxMesh_rm101"]
 size = Vector3(2.6, 0.3, 2.6)
@@ -148,7 +148,7 @@ size = Vector3(1, 6, 60)
 size = Vector3(0.3, 1.8, 0.3)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_fx73f"]
-size = Vector3(96, 1.1, 0.5)
+size = Vector3(40, 1.1, 0.5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bvuf6"]
 size = Vector3(2.6, 0.3, 2.6)
@@ -375,8 +375,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0.9, 28)
 mesh = SubResource("BoxMesh_gdkel")
 surface_material_override/0 = SubResource("StandardMaterial3D_pslqb")
 
-[node name="LaneRail" type="MeshInstance3D" parent="Geo"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 19.75)
+[node name="LaneRailWest" type="MeshInstance3D" parent="Geo"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0.55, 19.75)
+mesh = SubResource("BoxMesh_2ma02")
+surface_material_override/0 = SubResource("StandardMaterial3D_pslqb")
+
+[node name="LaneRailEast" type="MeshInstance3D" parent="Geo"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0.55, 19.75)
 mesh = SubResource("BoxMesh_2ma02")
 surface_material_override/0 = SubResource("StandardMaterial3D_pslqb")
 
@@ -629,8 +634,12 @@ shape = SubResource("BoxShape3D_ktjo5")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44, 0.9, 28)
 shape = SubResource("BoxShape3D_ktjo5")
 
-[node name="LaneRail" type="CollisionShape3D" parent="Collision"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 19.75)
+[node name="LaneRailWest" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 0.55, 19.75)
+shape = SubResource("BoxShape3D_fx73f")
+
+[node name="LaneRailEast" type="CollisionShape3D" parent="Collision"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0.55, 19.75)
 shape = SubResource("BoxShape3D_fx73f")
 
 [node name="JumpStep0" type="CollisionShape3D" parent="Collision"]
@@ -781,7 +790,7 @@ text = "FIRING LINE"
 font_size = 72
 
 [node name="SignRangeLane" type="Label3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 4.2, 24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -22, 4.6, 24)
 pixel_size = 0.024
 billboard = 1
 modulate = Color(1, 0.86, 0.35, 1)
@@ -871,7 +880,7 @@ font_size = 64
 outline_size = 11
 
 [node name="SignLaneRail" type="Label3D" parent="Signs"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 1.9, 19.75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26, 1.9, 19.75)
 pixel_size = 0.014
 billboard = 1
 outline_modulate = Color(0.05, 0.06, 0.07, 1)

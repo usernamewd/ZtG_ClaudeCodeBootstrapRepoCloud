@@ -382,8 +382,6 @@ def build(team: str) -> None:
     pal_b.update(cfg["palette_b"])
     slots_b = palette.recolor_atlas(entries, pal_b, atlas_b)
     assert slots == slots_b, "variant B must reuse variant A's slot layout"
-    _flip_atlas_rows(atlas_a)
-    _flip_atlas_rows(atlas_b)
     written += [atlas_a, atlas_b]
     print(f"[atlas] {len(slots)} slots: " +
           ", ".join(f"{k}#{v}" for k, v in sorted(slots.items(), key=lambda kv: kv[1])))
@@ -438,22 +436,6 @@ def build(team: str) -> None:
 
 
 # --- Blender-side helpers ---------------------------------------------------
-
-def _flip_atlas_rows(path: str) -> None:
-    """Reconcile the two row conventions in the shipped palette pipeline.
-
-    ``palette.build_atlas`` paints slot ``s`` with PIL, whose row 0 is the *top*
-    of the PNG, while ``palette.patch_uv(s)`` returns v measured from the
-    *bottom* (Blender/glTF UV space). Slot 0 therefore ends up painted at the
-    top of the image but sampled from the bottom, and every model comes out
-    reading the unused black slots. Flipping the finished atlas vertically maps
-    PIL row gy onto UV row gy for every slot without touching palette.py.
-    (Reported in the phase notes - the fix belongs in palette.patch_uv.)
-    """
-    from PIL import Image
-    im = Image.open(path)
-    im.transpose(Image.FLIP_TOP_BOTTOM).save(path)
-
 
 def _tris(obj) -> int:
     return sum(max(0, len(p.vertices) - 2) for p in obj.data.polygons)

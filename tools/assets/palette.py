@@ -199,9 +199,23 @@ def classify(material_name: str) -> str:
 
 # --- Atlas -------------------------------------------------------------------
 
+def _patch_cell(slot: int) -> Tuple[int, int]:
+    """Grid cell for a slot in PIL pixel space, where row 0 is the TOP of the
+    image.
+
+    UV space (Blender, and glTF after the exporter's flip) measures v from the
+    bottom, so a slot painted at PIL row 0 is sampled from the bottom of the
+    image unless one of the two is inverted. Inverting here, once, keeps
+    build_atlas and patch_uv in agreement — without it every model samples the
+    unpainted slots and comes out black.
+    """
+    return slot % GRID, GRID - 1 - (slot // GRID)
+
+
 def patch_uv(slot: int) -> Tuple[float, float, float, float]:
     """Return the safe (u0, v0, u1, v1) rectangle for a slot, in 0..1 UV space."""
-    gx, gy = slot % GRID, slot // GRID
+    gx = slot % GRID
+    gy = slot // GRID
     step = 1.0 / GRID
     u0, v0 = gx * step, gy * step
     pad = step * INSET
@@ -236,7 +250,7 @@ def build_atlas(entries: Dict[str, dict], out_path: str,
         if colors_are_linear:
             color = linear_to_srgb(color)
         surface = spec.get("surface") or classify(name)
-        gx, gy = slot % GRID, slot // GRID
+        gx, gy = _patch_cell(slot)
         box = (gx * PATCH_PX, gy * PATCH_PX, (gx + 1) * PATCH_PX, (gy + 1) * PATCH_PX)
         seed = int(hashlib.md5(name.encode()).hexdigest()[:8], 16)
         SURFACES.get(surface, _draw_flat)(img, box, color, seed)

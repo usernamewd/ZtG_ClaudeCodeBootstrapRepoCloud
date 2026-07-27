@@ -140,13 +140,17 @@ func _make_layer(layer_name: String) -> Control:
 func _build_widgets() -> void:
 	_vitals = VitalsPanel.new()
 	_vitals.name = "Vitals"
-	_vitals.setup("vitals", Vector2(0.0, 1.0), Vector2(22.0, -22.0),
+	_vitals.setup("vitals", Vector2(0.0, 1.0), Vector2(20.0, -20.0),
 		Vector2(272.0, 96.0))
 	_widgets.add_child(_vitals)
 
+	# The ammo block is right-hand side, but lifted clear of the touch fire
+	# cluster (fire/ADS/jump/crouch/reload reach up to 316 px off the bottom-right
+	# corner in scenes/ui/touch_controls.tscn). Sitting directly above the fire
+	# button keeps it out from under the thumb and short on eye travel.
 	_ammo = AmmoPanel.new()
 	_ammo.name = "Ammo"
-	_ammo.setup("ammo", Vector2(1.0, 1.0), Vector2(-22.0, -22.0),
+	_ammo.setup("ammo", Vector2(1.0, 1.0), Vector2(-20.0, -326.0),
 		Vector2(272.0, 96.0))
 	_widgets.add_child(_ammo)
 
@@ -647,20 +651,21 @@ class VitalsPanel extends HudWidget:
 			hp_col, 10, 2.0 * s)
 
 		var ap_col := UITheme.ACCENT_COOL if _ap > 0 else UITheme.TEXT_FAINT
-		draw_string(f, Vector2(198.0, 26.0) * s, "ARMOR",
+		draw_string(f, Vector2(192.0, 26.0) * s, "ARMOR",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, int(UITheme.FS_TINY * s),
 			UITheme.TEXT_FAINT)
-		draw_string(f, Vector2(196.0, 62.0) * s, _ap_text,
+		draw_string(f, Vector2(190.0, 62.0) * s, _ap_text,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, int(UITheme.FS_HEAD * s), ap_col)
 		UITheme.draw_segmented_bar(self,
-			Rect2(Vector2(196.0, 78.0) * s, Vector2(60.0, 6.0) * s),
+			Rect2(Vector2(190.0, 78.0) * s, Vector2(66.0, 6.0) * s),
 			clampf(float(_ap) / 100.0, 0.0, 1.0), ap_col, 5, 2.0 * s)
 
 		if _helmet:
-			# Helmet reads as a dome over the armour figure.
-			var c := Vector2(244.0, 52.0) * s
-			draw_arc(c, 11.0 * s, PI, TAU, 12, UITheme.ACCENT_COOL, 2.0 * s, true)
-			draw_line(c - Vector2(11.0, 0.0) * s, c + Vector2(11.0, 0.0) * s,
+			# Helmet reads as a dome; parked right of the armour figure so three
+			# digits still clear it.
+			var c := Vector2(246.0, 54.0) * s
+			draw_arc(c, 10.0 * s, PI, TAU, 12, UITheme.ACCENT_COOL, 2.0 * s, true)
+			draw_line(c - Vector2(10.0, 0.0) * s, c + Vector2(10.0, 0.0) * s,
 				UITheme.ACCENT_COOL, 2.0 * s)
 
 

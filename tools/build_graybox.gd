@@ -318,7 +318,7 @@ func _add_range_lane() -> void:
 	_sign("SignFiringLine", "FIRING LINE",
 		Vector3(FIRING_X, 2.6, LANE_Z), 72, 0.020, Color(1.0, 0.86, 0.35))
 	_sign("SignRangeLane", "RANGE LANE — DAMAGE FALLOFF",
-		Vector3(FIRING_X + 6.0, 4.2, LANE_Z), 72, 0.024, Color(1.0, 0.86, 0.35))
+		Vector3(FIRING_X + 24.0, 4.6, LANE_Z), 72, 0.024, Color(1.0, 0.86, 0.35))
 
 	for i in range(1, 10):
 		var metres := float(i) * 10.0
@@ -333,11 +333,15 @@ func _add_range_lane() -> void:
 			Vector3(x, 2.3, LANE_Z + LANE_HALF_W), 64, 0.018)
 
 	# Inner rail: crouch-safe cover (MAP_DESIGN half-height is 1.1 m) that also
-	# stops strays from wandering out of the lane.
-	_box("LaneRail", Vector3(0.0, 0.55, LANE_Z - LANE_HALF_W - 0.25),
-		Vector3(HALF_X * 2.0 - 4.0, 1.1, 0.5), "block")
-	_sign("SignLaneRail", "HALF COVER 1.10 m",
-		Vector3(-20.0, 1.9, LANE_Z - LANE_HALF_W - 0.25), 56, 0.014)
+	# stops strays from wandering out of the lane. Split at the centre so the
+	# ATK spawn has a straight walk-in instead of a detour to the map edge.
+	var rail_z := LANE_Z - LANE_HALF_W - 0.25
+	_box("LaneRailWest", Vector3(-26.0, 0.55, rail_z), Vector3(40.0, 1.1, 0.5),
+		"block")
+	_box("LaneRailEast", Vector3(26.0, 0.55, rail_z), Vector3(40.0, 1.1, 0.5),
+		"block")
+	_sign("SignLaneRail", "HALF COVER 1.10 m", Vector3(-26.0, 1.9, rail_z),
+		56, 0.014)
 
 
 ## Jump steps, two headroom gates and a ramp-fed platform.
