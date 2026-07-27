@@ -1,3 +1,4 @@
+class_name LoadoutScreen
 extends Control
 ## Loadout and Crates.
 ##

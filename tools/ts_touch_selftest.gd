@@ -306,6 +306,14 @@ func _run() -> void:
 	_ck(_near(jump.position, def_pos, 1.0) and _near(jump.size, def_size, 1.0),
 		"clearing the override restores the default placement")
 
+	# --- a layout that survived the JSON save file (Vector2 -> "(x, y)") ---
+	Settings.hud_layout["jump"] = {"pos": "(-480.0, -300.0)", "scale": 1.2}
+	jump.apply_hud_layout()
+	_ck(_near(jump.size, (def_size * 1.2).round(), 1.5) and not _near(jump.position, def_pos, 1.0),
+		"a JSON-round-tripped pos string still positions the button")
+	Settings.hud_layout.erase("jump")
+	jump.apply_hud_layout()
+
 	# --- fire_left mirror follows Settings ---
 	var fl := _btn("fire_left")
 	_ck(not fl.visible, "mirrored left fire hidden by default")
@@ -352,6 +360,31 @@ func _run() -> void:
 	_ck(not Settings.hud_layout.has("jump") and _near(jump.position, def_pos, 1.0),
 		"reset_layout clears overrides and restores defaults")
 	_tc.set_editing(false)
+
+	# --- hud_scale ---
+	var s0 := jump.size
+	Settings.hud_scale = 1.25
+	Settings.changed.emit()
+	_ck(_near(jump.size, (s0 * 1.25).round(), 1.5), "hud_scale rescales buttons (%v)" % jump.size)
+	_ck(is_equal_approx(stick.radius_px(), 150.0), "hud_scale rescales the stick radius (%.1f)"
+		% stick.radius_px())
+	Settings.hud_scale = 1.0
+	Settings.changed.emit()
+	_ck(_near(jump.size, s0, 1.5), "hud_scale restores")
+
+	# --- a freshly instantiated copy applies hud_layout in _ready ---
+	Settings.hud_layout["fire"] = {"pos": Vector2(-420.0, -260.0), "scale": 0.8}
+	var packed: PackedScene = load(SCENE)
+	var second := packed.instantiate() as TouchControls
+	add_child(second)
+	var f2 := second.get_control("fire") as TouchButton
+	_ck(_near(f2.size, (fire.base_size * 0.8).round(), 1.5),
+		"_ready applies Settings.hud_layout scale (%v)" % f2.size)
+	_ck(not _near(f2.position, fire.position, 1.0), "_ready applies Settings.hud_layout pos")
+	remove_child(second)
+	second.free()
+	Settings.hud_layout.erase("fire")
+	InputHub.reset()
 
 	# --- API used by the HUD ---
 	_tc.show_interact(false)

@@ -130,7 +130,7 @@ func apply_hud_layout() -> void:
 		if ov is Dictionary:
 			var d: Dictionary = ov
 			if d.has("pos"):
-				off = d["pos"]
+				off = to_vec2(d["pos"], off)
 			if d.has("scale"):
 				mult = float(d["scale"])
 	layout_scale = clampf(mult, SCALE_MIN, SCALE_MAX)
@@ -145,6 +145,29 @@ func apply_hud_layout() -> void:
 		- Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)).round()
 	_recompute_home()
 	queue_redraw()
+
+
+## Settings persist through JSON, which turns a Vector2 into the string "(x, y)";
+## a stored layout must therefore be parsed tolerantly. Duplicated in
+## touch_button.gd on purpose so neither control depends on the other.
+static func to_vec2(v: Variant, fallback: Vector2) -> Vector2:
+	match typeof(v):
+		TYPE_VECTOR2:
+			return v
+		TYPE_VECTOR2I:
+			return Vector2(v)
+		TYPE_ARRAY, TYPE_PACKED_FLOAT32_ARRAY, TYPE_PACKED_FLOAT64_ARRAY, TYPE_PACKED_INT32_ARRAY:
+			var a: Array = Array(v)
+			if a.size() >= 2:
+				return Vector2(float(a[0]), float(a[1]))
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s := String(v).strip_edges()
+			if not s.begins_with("Vector2"):
+				s = "Vector2" + s
+			var parsed: Variant = str_to_var(s)
+			if parsed is Vector2:
+				return parsed
+	return fallback
 
 
 func _recompute_home() -> void:

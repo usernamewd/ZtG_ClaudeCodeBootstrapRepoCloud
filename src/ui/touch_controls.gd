@@ -322,6 +322,16 @@ func _process(delta: float) -> void:
 	# lands, the way holding space does on desktop.
 	if _jump != null and _jump.is_held:
 		InputHub.jump_pressed = true
+	# A finger that is physically down must survive anything that clears InputHub
+	# mid-hold (round reset, respawn), so re-assert held state — but only upwards,
+	# never to false, or this would fight the keyboard/mouse debug path.
+	if not InputHub.fire_held and _fire_down():
+		InputHub.fire_held = true
+	if _interact != null and _interact.is_held and not InputHub.interact_held:
+		InputHub.interact_held = true
+	if _crouch != null and _crouch.is_held and not Settings.crouch_is_toggle \
+			and not InputHub.crouch_held:
+		InputHub.crouch_held = true
 	if Settings.gyro_enabled:
 		_apply_gyro(delta)
 

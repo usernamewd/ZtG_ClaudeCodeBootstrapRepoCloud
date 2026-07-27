@@ -83,6 +83,7 @@ func _build() -> void:
 	stick.set("zone_ratio", Vector2(0.40, 0.78))
 	stick.set("hud_anchor", BL)
 	stick.set("hud_offset", Vector2(0.0, 0.0))
+	stick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_safe.add_child(stick)
 	stick.owner = _root
 

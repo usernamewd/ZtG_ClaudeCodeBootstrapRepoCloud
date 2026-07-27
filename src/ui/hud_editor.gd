@@ -209,7 +209,7 @@ func _on_scale_changed(value: float) -> void:
 
 func _store(c: Control) -> void:
 	Settings.hud_layout[_hud_id(c)] = {
-		"pos": c.global_position,
+		"pos": [c.global_position.x, c.global_position.y],
 		"scale": c.scale.x,
 	}
 

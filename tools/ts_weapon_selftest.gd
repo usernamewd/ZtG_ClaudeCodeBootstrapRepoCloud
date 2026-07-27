@@ -520,12 +520,13 @@ func _test_player_binding() -> void:
 	await _settle(2)
 	player.give_weapon("ar77")
 	await _settle(4)
-	var w := player.get_weapon_node() if player.has_method("get_weapon_node") else null
-	_check(w is Weapon, "player built a Weapon node", str(w))
-	if not (w is Weapon):
+	var pw: Weapon = null
+	if player.has_method("get_weapon_node"):
+		pw = player.get_weapon_node() as Weapon
+	_check(pw != null, "player built a Weapon node", str(pw))
+	if pw == null:
 		player.queue_free()
 		return
-	var pw := w as Weapon
 	_check(pw.weapon_id == "ar77", "player called setup() with the weapon id", pw.weapon_id)
 	_check(pw.owner_char == player, "setup() bound the owner")
 	_check(pw.aim_source == player.get_camera(), "setup() bound the camera as aim source")

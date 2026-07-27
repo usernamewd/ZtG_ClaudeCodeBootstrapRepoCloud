@@ -179,7 +179,7 @@ func apply_hud_layout() -> void:
 		if ov is Dictionary:
 			var d: Dictionary = ov
 			if d.has("pos"):
-				off = d["pos"]
+				off = TouchButton.to_vec2(d["pos"], off)
 			if d.has("scale"):
 				mult = float(d["scale"])
 	layout_scale = clampf(mult, SCALE_MIN, SCALE_MAX)
@@ -189,6 +189,29 @@ func apply_hud_layout() -> void:
 	var anchor_pt := Vector2(area.x * hud_anchor.x, area.y * hud_anchor.y)
 	position = (anchor_pt + off * hs - Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)).round()
 	queue_redraw()
+
+
+## Settings are persisted through JSON (user://save.json), and a Vector2 comes
+## back from that as the string "(x, y)" — so a stored layout has to be read
+## tolerantly or every saved HUD arrangement would be silently dropped.
+static func to_vec2(v: Variant, fallback: Vector2) -> Vector2:
+	match typeof(v):
+		TYPE_VECTOR2:
+			return v
+		TYPE_VECTOR2I:
+			return Vector2(v)
+		TYPE_ARRAY, TYPE_PACKED_FLOAT32_ARRAY, TYPE_PACKED_FLOAT64_ARRAY, TYPE_PACKED_INT32_ARRAY:
+			var a: Array = Array(v)
+			if a.size() >= 2:
+				return Vector2(float(a[0]), float(a[1]))
+		TYPE_STRING, TYPE_STRING_NAME:
+			var s := String(v).strip_edges()
+			if not s.begins_with("Vector2"):
+				s = "Vector2" + s
+			var parsed: Variant = str_to_var(s)
+			if parsed is Vector2:
+				return parsed
+	return fallback
 
 
 ## Editor drag: `delta` is a movement in parent-local pixels.

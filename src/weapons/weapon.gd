@@ -448,6 +448,9 @@ func _shoot_if_ready(pulse: bool) -> bool:
 
 
 func _dry_fire() -> void:
+	# A burst that runs the magazine dry ends there; it must not resume after the
+	# reload without a fresh trigger pull.
+	_burst_left = 0
 	if _dry_left > 0.0:
 		return
 	_dry_left = DRY_FIRE_DELAY

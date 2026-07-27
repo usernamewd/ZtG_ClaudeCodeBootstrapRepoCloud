@@ -21,6 +21,7 @@ mouse_filter = 2
 
 [node name="Stick" type="Control" parent="Safe"]
 anchors_preset = 0
+mouse_filter = 2
 script = ExtResource("2_nk8ty")
 
 [node name="Fire" type="Control" parent="Safe"]
