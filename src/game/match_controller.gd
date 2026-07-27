@@ -65,6 +65,9 @@ func _ready() -> void:
 	_setup_pools()
 	if not _load_map():
 		return
+	# Re-apply now that the map's sun exists; the call in _ready ran against an
+	# empty scene and could not reach it.
+	Settings.apply_shadow_preset()
 	_spawn_player()
 	_spawn_bots()
 	_spawn_bomb()
@@ -211,10 +214,10 @@ func _build_hud() -> void:
 	_scoreboard.local_player_id = LOCAL_PLAYER_ID
 	layer.add_child(_scoreboard)
 
-	layer.add_child(_make_hud_button("BUY", Vector2(18, 96), func():
+	layer.add_child(_make_hud_button("BUY", Vector2(18, 232), func():
 		_buy_menu.in_buy_zone = _player_in_buy_zone()
 		_buy_menu.toggle(), "buy"))
-	layer.add_child(_make_hud_button("SCORE", Vector2(18, 160), func():
+	layer.add_child(_make_hud_button("SCORE", Vector2(128, 232), func():
 		_scoreboard.toggle(), "score"))
 
 	_buy_menu.bind(player, round_director)
@@ -401,8 +404,20 @@ func _on_match_over(winning_team: int) -> void:
 func _spawn_transform(team: int, index: int) -> Transform3D:
 	if map_info and map_info.has_method("get_spawn"):
 		return map_info.get_spawn(team, index)
-	# Without MapInfo, fan players out around the origin rather than stacking
-	# them all on one point.
+	# Read the map's spawn markers directly. Without this, ten characters land on
+	# nearly the same point and shove each other out of the level.
+	var holder := map_root.get_node_or_null(
+		"ATKSpawns" if team == GameState.Team.ATK else "DEFSpawns") if map_root else null
+	if holder and holder.get_child_count() > 0:
+		var m := holder.get_child(index % holder.get_child_count()) as Node3D
+		if m:
+			var t := m.global_transform
+			# Wrap-around: nudge extra players off the marker so they don't stack.
+			var wrap := index / holder.get_child_count()
+			if wrap > 0:
+				t.origin += Vector3(cos(wrap * 2.4) * 1.4, 0.0, sin(wrap * 2.4) * 1.4)
+			t.origin.y += 0.2
+			return t
 	var side := -18.0 if team == GameState.Team.DEF else 18.0
 	return Transform3D(Basis(), Vector3((index - 2) * 2.0, 1.0, side))
 

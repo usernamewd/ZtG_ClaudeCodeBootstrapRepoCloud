@@ -1,0 +1,102 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/ui/hud.gd" id="1_oj5la"]
+[ext_resource type="PackedScene" path="res://scenes/ui/touch_controls.tscn" id="2_gss2c"]
+[ext_resource type="Script" path="res://src/ui/touch_controls.gd" id="3_h022r"]
+[ext_resource type="Script" path="res://src/ui/damage_indicator.gd" id="4_4jqwt"]
+[ext_resource type="Script" path="res://src/ui/crosshair.gd" id="5_kicr4"]
+[ext_resource type="Script" path="res://src/ui/hit_marker.gd" id="6_mj13f"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_oj5la")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TouchControls" type="Control" parent="Root" instance=ExtResource("2_gss2c")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("3_h022r")
+slot_ids = PackedStringArray("slot_primary", "slot_secondary", "slot_knife", "slot_grenade")
+
+[node name="Reticle" type="Control" parent="Root"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="DamageIndicator" type="Control" parent="Root/Reticle"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("4_4jqwt")
+
+[node name="Crosshair" type="Control" parent="Root/Reticle"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("5_kicr4")
+
+[node name="HitMarker" type="Control" parent="Root/Reticle"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("6_mj13f")
+
+[node name="Widgets" type="Control" parent="Root"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Phase4" type="Control" parent="Root"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Radar" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="RoundBar" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="KillFeed" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Money" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Alerts" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Objective" type="Control" parent="Root/Phase4"]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2

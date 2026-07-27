@@ -38,6 +38,7 @@ const HANDLE_PX := 30.0
 var value: Vector2 = Vector2.ZERO
 var layout_scale: float = 1.0
 
+var _default_offset: Vector2 = Vector2.ZERO
 var _active: bool = false
 var _origin: Vector2 = Vector2.ZERO
 var _knob: Vector2 = Vector2.ZERO
@@ -48,6 +49,7 @@ var _editing: bool = false
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	focus_mode = Control.FOCUS_NONE
+	_default_offset = hud_offset
 	add_to_group("hud_movable")
 	set_meta("hud_id", hud_id)
 	set_meta("hud_anchor", hud_anchor)
@@ -122,29 +124,52 @@ func _local_of(viewport_pos: Vector2) -> Vector2:
 
 # --- layout -------------------------------------------------------------------
 
+## Accepts both layout formats: "off" (anchor-relative, unscaled — written here)
+## and "pos" (absolute position, what src/ui/hud_editor.gd stores). See
+## touch_button.gd for the same rule; the zone is then clamped on-screen.
 func apply_hud_layout() -> void:
-	var off := hud_offset
+	# See touch_button.gd: start from the authored default, never from the live
+	# offset, or an override could never be cleared.
+	var off := _default_offset
+	var abs_pos := Vector2.INF
 	var mult := 1.0
 	if hud_id != "":
 		var ov: Variant = Settings.hud_layout.get(hud_id)
 		if ov is Dictionary:
 			var d: Dictionary = ov
-			if d.has("pos"):
-				off = to_vec2(d["pos"], off)
 			if d.has("scale"):
 				mult = float(d["scale"])
+			if d.has("off"):
+				off = to_vec2(d["off"], off)
+			elif d.has("pos"):
+				abs_pos = to_vec2(d["pos"], abs_pos)
 	layout_scale = clampf(mult, SCALE_MIN, SCALE_MAX)
+	scale = Vector2.ONE
 	var area := get_parent_area_size()
 	var r := radius_px()
 	var want := Vector2(area.x * zone_ratio.x, area.y * zone_ratio.y)
 	size = Vector2(
 		clampf(want.x, minf(r * 2.0 + 32.0, area.x), area.x),
 		clampf(want.y, minf(r * 2.0 + 32.0, area.y), area.y)).round()
-	var anchor_pt := Vector2(area.x * hud_anchor.x, area.y * hud_anchor.y)
-	position = (anchor_pt + off * Settings.hud_scale
-		- Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)).round()
+	if abs_pos.is_finite():
+		global_position = abs_pos
+	else:
+		var anchor_pt := Vector2(area.x * hud_anchor.x, area.y * hud_anchor.y)
+		position = anchor_pt + off * Settings.hud_scale \
+			- Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)
+	clamp_into_parent()
+	_sync_offset_from_position()
 	_recompute_home()
 	queue_redraw()
+
+
+## The stick zone is large, so it only has to keep its ring reachable: a third of
+## the zone may hang off the edge, no more.
+func clamp_into_parent() -> void:
+	var area := get_parent_area_size()
+	position = Vector2(
+		clampf(position.x, -size.x * 0.35, maxf(-size.x * 0.35, area.x - size.x * 0.65)),
+		clampf(position.y, -size.y * 0.35, maxf(-size.y * 0.35, area.y - size.y * 0.65))).round()
 
 
 ## Settings persist through JSON, which turns a Vector2 into the string "(x, y)";
@@ -183,10 +208,8 @@ func _recompute_home() -> void:
 
 
 func nudge(delta: Vector2) -> void:
-	var area := get_parent_area_size()
-	position = Vector2(
-		clampf(position.x + delta.x, -size.x * 0.35, area.x - size.x * 0.65),
-		clampf(position.y + delta.y, -size.y * 0.35, area.y - size.y * 0.65))
+	position += delta
+	clamp_into_parent()
 	_sync_offset_from_position()
 
 
@@ -207,13 +230,18 @@ func _sync_offset_from_position() -> void:
 func store_layout() -> void:
 	if hud_id == "":
 		return
-	Settings.hud_layout[hud_id] = {"pos": hud_offset, "scale": layout_scale}
+	Settings.hud_layout[hud_id] = {
+		"pos": [global_position.x, global_position.y],
+		"off": [hud_offset.x, hud_offset.y],
+		"anchor": [hud_anchor.x, hud_anchor.y],
+		"scale": layout_scale,
+	}
 
 
 func reset_layout() -> void:
 	if hud_id != "" and Settings.hud_layout.has(hud_id):
 		Settings.hud_layout.erase(hud_id)
-	hud_offset = get_meta("hud_default_pos", hud_offset)
+	hud_offset = _default_offset
 	layout_scale = 1.0
 	apply_hud_layout()
 

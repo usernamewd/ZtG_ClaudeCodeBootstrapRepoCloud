@@ -1,0 +1,115 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://src/bots/bot_brain.gd" id="1_r5oie"]
+[ext_resource type="Script" path="res://src/characters/character_visual.gd" id="2_qn5qy"]
+[ext_resource type="PackedScene" path="res://assets/characters/havoc.glb" id="3_ytor6"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_apjjv"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_jmq8t"]
+size = Vector3(0.22, 0.24, 0.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_w48k4"]
+size = Vector3(0.44, 0.44, 0.28)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7w486"]
+size = Vector3(0.38, 0.3, 0.26)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_536ug"]
+size = Vector3(0.16, 0.52, 0.18)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_um03s"]
+size = Vector3(0.16, 0.52, 0.18)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lhj4y"]
+size = Vector3(0.2, 0.86, 0.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_onhyu"]
+size = Vector3(0.2, 0.86, 0.22)
+
+[node name="Bot" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 135
+script = ExtResource("1_r5oie")
+
+[node name="BodyShape" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_apjjv")
+
+[node name="Eye" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+
+[node name="Mesh" type="Node3D" parent="."]
+script = ExtResource("2_qn5qy")
+model_path = NodePath("Model")
+
+[node name="Model" type="Node3D" parent="Mesh" instance=ExtResource("3_ytor6")]
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="HeadHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.66, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 0
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/HeadHB"]
+shape = SubResource("BoxShape3D_jmq8t")
+
+[node name="ChestHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.28, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 1
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/ChestHB"]
+shape = SubResource("BoxShape3D_w48k4")
+
+[node name="StomachHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 2
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/StomachHB"]
+shape = SubResource("BoxShape3D_7w486")
+
+[node name="ArmLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, 1.24, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/ArmLHB"]
+shape = SubResource("BoxShape3D_536ug")
+
+[node name="ArmRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, 1.24, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/ArmRHB"]
+shape = SubResource("BoxShape3D_um03s")
+
+[node name="LegLHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.13, 0.44, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LegLHB"]
+shape = SubResource("BoxShape3D_lhj4y")
+
+[node name="LegRHB" type="StaticBody3D" parent="Hitboxes" groups=["hitbox"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.44, 0)
+collision_layer = 8
+collision_mask = 0
+metadata/zone = 3
+
+[node name="Shape" type="CollisionShape3D" parent="Hitboxes/LegRHB"]
+shape = SubResource("BoxShape3D_onhyu")
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]

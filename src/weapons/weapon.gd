@@ -214,11 +214,13 @@ func setup(p_weapon_id: String, p_owner_char: CharacterBase, p_aim_source: Node3
 	set_physics_process(_mode != Mode.INERT)
 
 	_draw_left = _draw_time
-	if _draw_left > 0.0:
+	# INERT ids never tick, so they must not be parked in DRAWING for good.
+	if _draw_left > 0.0 and _mode != Mode.INERT:
 		_set_state(State.DRAWING)
 		if not _draw_sfx.is_empty():
 			AudioMgr.play_3d(_draw_sfx, _aim_origin())
 	else:
+		_draw_left = 0.0
 		_set_state(State.READY)
 	ammo_changed.emit(get_mag(), get_reserve())
 

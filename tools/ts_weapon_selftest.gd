@@ -46,6 +46,7 @@ func _ready() -> void:
 	await _test_recoil()
 	await _test_knife()
 	await _test_shotgun_pellets()
+	await _test_burst_and_dryfire()
 	await _test_player_binding()
 	print("[ts_weapon] %s (%d failures)" % ["FAIL" if _fails > 0 else "ALL OK", _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -502,6 +503,41 @@ func _test_shotgun_pellets() -> void:
 	_check(_count_tracers() <= 2, "at most 2 tracers per shell", str(_count_tracers()))
 	_target.position = Vector3(0.0, 0.0, NEAR_Z)
 	await _settle(2)
+
+
+func _test_burst_and_dryfire() -> void:
+	print("[ts_weapon] burst mode + dry fire")
+	_reset()
+	await _equip("snub")               # burst_count 3, burst_rate 12
+	await _recover()
+	await _aim_at(_chest_of(_target))
+	var mag0 := _shooter.get_mag("snub")
+	_weapon.set_trigger(true)
+	await _settle(24)                  # 3 shots take 0.17 s; the trigger stays held
+	var spent := mag0 - _shooter.get_mag("snub")
+	_check(spent == 3, "one pull fires exactly burst_count shots", str(spent))
+	await _settle(20)
+	_check(mag0 - _shooter.get_mag("snub") == 3, "held trigger does not restart the burst",
+		str(mag0 - _shooter.get_mag("snub")))
+	_weapon.set_trigger(false)
+
+	await _equip("ar77")
+	await _recover()
+	_shooter.set_ammo("ar77", 1, 30)
+	_weapon.set_trigger(true)
+	await _settle(20)
+	_weapon.set_trigger(false)
+	_check(_shooter.get_mag("ar77") == 0, "last round leaves the mag",
+		str(_shooter.get_mag("ar77")))
+	_check(_weapon.is_reloading(), "an empty mag auto-reloads on the next pull")
+	for i in 300:
+		if not _weapon.is_reloading():
+			break
+		await get_tree().physics_frame
+	# 1 in the mag + 30 spare, one round fired: the whole reserve goes in.
+	_check(_shooter.get_mag("ar77") == 30 and _shooter.get_reserve("ar77") == 0,
+		"auto reload refills from the reserve",
+		"%d/%d" % [_shooter.get_mag("ar77"), _shooter.get_reserve("ar77")])
 
 
 ## The player binds weapons by duck-typing (src/characters/player.gd), so the

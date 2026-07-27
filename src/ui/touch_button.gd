@@ -90,6 +90,7 @@ var layout_scale: float = 1.0
 var _flash: float = 0.0
 var _hold_time: float = 0.0
 var _editing: bool = false
+var _default_offset: Vector2 = Vector2.ZERO
 var _box: StyleBoxFlat
 var _pts: PackedVector2Array = PackedVector2Array()
 var _mobile: bool = false
@@ -102,6 +103,7 @@ func _ready() -> void:
 	_box = StyleBoxFlat.new()
 	_box.set_border_width_all(1)
 	_pts.resize(4)
+	_default_offset = hud_offset
 	add_to_group("hud_movable")
 	set_meta("hud_id", hud_id)
 	set_meta("hud_anchor", hud_anchor)
@@ -171,24 +173,49 @@ func _process(delta: float) -> void:
 
 # --- layout -------------------------------------------------------------------
 
+## Two layout formats are honoured, because two things write Settings.hud_layout:
+##  - "off": anchor-relative, unscaled — written here, resolution independent;
+##  - "pos": the control's absolute position — what src/ui/hud_editor.gd stores.
+## "off" wins when both are present. Either way the result is clamped so a stale
+## entry can never park a button off-screen where it cannot be recovered.
 func apply_hud_layout() -> void:
-	var off := hud_offset
+	# Always start from the authored default: hud_offset tracks the *current*
+	# placement (the editor drags it), so reusing it here would make an override
+	# permanent and break "clear the override, get the default back".
+	var off := _default_offset
+	var abs_pos := Vector2.INF
 	var mult := 1.0
 	if hud_id != "":
 		var ov: Variant = Settings.hud_layout.get(hud_id)
 		if ov is Dictionary:
 			var d: Dictionary = ov
-			if d.has("pos"):
-				off = TouchButton.to_vec2(d["pos"], off)
 			if d.has("scale"):
 				mult = float(d["scale"])
+			if d.has("off"):
+				off = TouchButton.to_vec2(d["off"], off)
+			elif d.has("pos"):
+				abs_pos = TouchButton.to_vec2(d["pos"], abs_pos)
 	layout_scale = clampf(mult, SCALE_MIN, SCALE_MAX)
+	scale = Vector2.ONE
 	var hs: float = Settings.hud_scale
 	size = (base_size * hs * layout_scale).round()
 	var area := get_parent_area_size()
-	var anchor_pt := Vector2(area.x * hud_anchor.x, area.y * hud_anchor.y)
-	position = (anchor_pt + off * hs - Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)).round()
+	if abs_pos.is_finite():
+		global_position = abs_pos
+	else:
+		var anchor_pt := Vector2(area.x * hud_anchor.x, area.y * hud_anchor.y)
+		position = anchor_pt + off * hs - Vector2(size.x * hud_anchor.x, size.y * hud_anchor.y)
+	clamp_into_parent()
+	_sync_offset_from_position()
 	queue_redraw()
+
+
+## Keep at least two thirds of the control inside the parent area.
+func clamp_into_parent() -> void:
+	var area := get_parent_area_size()
+	position = Vector2(
+		clampf(position.x, -size.x * 0.35, maxf(-size.x * 0.35, area.x - size.x * 0.65)),
+		clampf(position.y, -size.y * 0.35, maxf(-size.y * 0.35, area.y - size.y * 0.65))).round()
 
 
 ## Settings are persisted through JSON (user://save.json), and a Vector2 comes
@@ -216,10 +243,8 @@ static func to_vec2(v: Variant, fallback: Vector2) -> Vector2:
 
 ## Editor drag: `delta` is a movement in parent-local pixels.
 func nudge(delta: Vector2) -> void:
-	var area := get_parent_area_size()
-	position = Vector2(
-		clampf(position.x + delta.x, -size.x * 0.35, area.x - size.x * 0.65),
-		clampf(position.y + delta.y, -size.y * 0.35, area.y - size.y * 0.65))
+	position += delta
+	clamp_into_parent()
 	_sync_offset_from_position()
 
 
@@ -240,16 +265,24 @@ func _sync_offset_from_position() -> void:
 	hud_offset = (own - anchor_pt) / hs
 
 
+## Written in both formats, as JSON-safe arrays: "pos" so src/ui/hud_editor.gd
+## and any absolute reader stay correct, "off" so the layout still means the same
+## thing on a different screen size.
 func store_layout() -> void:
 	if hud_id == "":
 		return
-	Settings.hud_layout[hud_id] = {"pos": hud_offset, "scale": layout_scale}
+	Settings.hud_layout[hud_id] = {
+		"pos": [global_position.x, global_position.y],
+		"off": [hud_offset.x, hud_offset.y],
+		"anchor": [hud_anchor.x, hud_anchor.y],
+		"scale": layout_scale,
+	}
 
 
 func reset_layout() -> void:
 	if hud_id != "" and Settings.hud_layout.has(hud_id):
 		Settings.hud_layout.erase(hud_id)
-	hud_offset = get_meta("hud_default_pos", hud_offset)
+	hud_offset = _default_offset
 	layout_scale = 1.0
 	apply_hud_layout()
 

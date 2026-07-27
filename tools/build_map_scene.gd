@@ -202,7 +202,11 @@ func _add_environment(root: Node3D, layout: Dictionary) -> void:
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_max_distance = 60.0
-	sun.shadow_bias = 0.04
+	# A large ortho shadow across a flat floor shows acne as concentric arcs
+	# without a generous normal bias.
+	sun.shadow_bias = 0.09
+	sun.shadow_normal_bias = 2.5
+	sun.add_to_group("sun_light", true)
 	root.add_child(sun)
 
 

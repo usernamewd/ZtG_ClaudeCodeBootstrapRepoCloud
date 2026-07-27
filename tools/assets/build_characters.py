@@ -10,7 +10,8 @@ from a different source .blend, and a .blend has to be *opened*, not imported).
 Pipeline per team
 -----------------
 1.  open the source .blend, drop the 15 prop weapons that ship parented to the
-    hand bone, keep armature + body + head (+ shoulder pads),
+    hand bone, keep armature + body + head (+ shoulder pads), and for Havoc
+    graft the hood in from the Enemy .blend onto the same 43-bone rig,
 2.  decimate to the <=3000 tri character budget and re-derive sharp edges,
 3.  **zone split**: every polygon is re-assigned to a semantic material
     (``Fatigue`` / ``Rig`` / ``Boot`` / ``Skin`` / ``Accent`` ...) from its
@@ -27,9 +28,14 @@ Pipeline per team
 ``Body`` and ``Head`` stay separate mesh objects on purpose: the local player
 hides ``Head`` for full-body first person (see docs/ASSET_PIPELINE.md).
 
+Both teams use the Soldier *body* (the one with a plate carrier, mag pouches and
+a belt as real geometry) so they animate and budget identically; Havoc swaps the
+helmet for the Enemy character's hood and drops the pauldrons, which is enough
+silhouette difference to call the team at distance.
+
 Source: Quaternius "Ultimate Toon Shooter" (CC0)
-  havoc <- /opt/assets_cc0/toonshooter/Characters/Blends/Character_Enemy.blend
-  aegis <- /opt/assets_cc0/toonshooter/Characters/Blends/Character_Soldier.blend
+  /opt/assets_cc0/toonshooter/Characters/Blends/Character_Soldier.blend  (both bodies)
+  /opt/assets_cc0/toonshooter/Characters/Blends/Character_Enemy.blend    (havoc hood)
 """
 from __future__ import annotations
 
@@ -72,9 +78,8 @@ Z_CUFF = 0.28        # ... and the trouser below this becomes the boot shaft
 Z_HEAD = 1.53        # neck line
 Z_KNEE_LO, Z_KNEE_HI = 0.50, 0.61
 Z_HEM = 0.99         # bottom hem of the torso mesh -> belt line
-X_HAND = 0.97        # wrist: |x| beyond this is the hand
+X_WRIST = 0.88       # |x| beyond this is the hand
 X_ARM = 0.30         # shoulder joint: |x| beyond this is an arm, not the torso
-X_ELBOW = 0.62       # |x| beyond this is forearm
 
 
 def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
@@ -88,10 +93,8 @@ def zone_aegis(src: str, x: float, y: float, z: float, role: str) -> str:
         if src == "Grey":
             return "Accent"                  # band around the helmet
         return "Balaclava"                   # balaclava + goggle strap
-    if role == "pad":
-        return "Pauldron"
     if src == "Skin":
-        return "Glove" if ax >= 0.88 else "Sleeve"
+        return "Glove" if ax >= X_WRIST else "Sleeve"
     if src == "Black":
         if z < Z_BOOT:
             return "Boot"

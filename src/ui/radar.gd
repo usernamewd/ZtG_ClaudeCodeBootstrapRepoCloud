@@ -49,15 +49,35 @@ func _build_outline() -> void:
 		if pts is PackedVector2Array:
 			_outline = pts
 			return
-	# Fall back to the playable AABB corners.
+	# Fall back to the playable AABB corners...
 	if map_info.has_method("get_playable_bounds"):
 		var b = map_info.get_playable_bounds()
 		if b is AABB:
-			var aabb := b as AABB
-			_outline.append(Vector2(aabb.position.x, aabb.position.z))
-			_outline.append(Vector2(aabb.end.x, aabb.position.z))
-			_outline.append(Vector2(aabb.end.x, aabb.end.z))
-			_outline.append(Vector2(aabb.position.x, aabb.end.z))
+			_outline_from_aabb(b as AABB)
+			return
+	# ...and failing that, derive bounds from the map's own visual extent, so the
+	# radar still shows the playable area on a map that predates MapInfo.
+	var derived := _visual_aabb(map_info)
+	if derived.size.length() > 1.0:
+		_outline_from_aabb(derived)
+		world_span = maxf(derived.size.x, derived.size.z) * 0.55
+
+
+func _outline_from_aabb(aabb: AABB) -> void:
+	_outline.append(Vector2(aabb.position.x, aabb.position.z))
+	_outline.append(Vector2(aabb.end.x, aabb.position.z))
+	_outline.append(Vector2(aabb.end.x, aabb.end.z))
+	_outline.append(Vector2(aabb.position.x, aabb.end.z))
+
+
+func _visual_aabb(n: Node, acc := AABB()) -> AABB:
+	if n is VisualInstance3D:
+		var vi := n as VisualInstance3D
+		var a: AABB = vi.global_transform * vi.get_aabb()
+		acc = a if acc.size == Vector3.ZERO else acc.merge(a)
+	for c in n.get_children():
+		acc = _visual_aabb(c, acc)
+	return acc
 
 
 func _process(delta: float) -> void:

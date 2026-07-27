@@ -136,8 +136,10 @@ def saltline() -> dict:
         wall_x(-26.0, 4.0, 12.0, WALL_H, WALL_T, "concrete", "rotate"),
     ]
     floors += [floor(0.0, -31.0, 20.0, 6.0, 0.0, "concrete", "aegis_spawn")]
-    for i, x in enumerate([-6.0, -3.0, 0.0, 3.0, 6.0]):
-        markers.append(marker(x, -31.0, 0.0, 180.0, "def_spawn"))
+    # Spawn markers must line up with the rotate-corridor gap (x −4..4) and face
+    # into it; sitting them wider puts a player nose-first into a wall on spawn.
+    for x in [-3.0, -1.5, 0.0, 1.5, 3.0]:
+        markers.append(marker(x, -30.0, 0.0, 180.0, "def_spawn"))
 
     # ---- Mid: courtyard with a central silo -------------------------------
     # The silo is why crossing mid is survivable: it breaks the straight
@@ -372,8 +374,9 @@ def transit() -> dict:
         wall_x(-26.0, 4.0, 10.0, WALL_H, WALL_T, "concrete", "service"),
     ]
     floors += [floor(0.0, -29.0, 14.0, 6.0, 0.0, "concrete", "aegis_spawn")]
-    for x in [-5.0, -2.5, 0.0, 2.5, 5.0]:
-        markers.append(marker(x, -29.0, 0.0, 180.0, "def_spawn"))
+    # Aligned with the service-corridor gap (x −4..4), facing into the map.
+    for x in [-3.0, -1.5, 0.0, 1.5, 3.0]:
+        markers.append(marker(x, -28.5, 0.0, 180.0, "def_spawn"))
 
     markers += [
         marker(-27.0, -15.0, PLATFORM_H, 135.0, "hold_B"),

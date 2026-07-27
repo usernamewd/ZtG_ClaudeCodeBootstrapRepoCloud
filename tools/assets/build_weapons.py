@@ -30,6 +30,9 @@ kit), so a mount node needs no magic offset.
 Markers are Empties parented to the mesh and export as Node3D:
 Muzzle / ShellPort / GripR / GripL / Sight. Every one is derived from the actual
 vertex cloud (see `_markers`), never from a hardcoded guess.
+
+Two things this script has to correct on top of the shared helpers -- see
+`_reproject_uvs` and `_seal_atlas` for the details and the reasoning.
 """
 from __future__ import annotations
 
@@ -74,25 +77,6 @@ def hexc(s: str):
                  for i in (0, 2, 4))
 
 
-# Shared finish vocabulary; each weapon mixes these differently.
-POLYMER_BLACK = hexc("23262b")
-BLUED_STEEL = hexc("2b3340")
-PARKERIZED = hexc("55585a")
-STAINLESS = hexc("9aa0a6")
-GUNMETAL = hexc("41464c")
-WALNUT = hexc("6b4526")
-DESERT_TAN = hexc("b09468")
-FDE = hexc("7a6a4f")
-OLIVE = hexc("4d5636")
-OLIVE_DARK = hexc("343a24")
-SCOPE_GLASS = hexc("2d4a6b")
-RUBBER_BLACK = hexc("1b1d20")
-BRASS = hexc("8a6a2c")
-HAZARD = hexc("c8531f")
-STEEL_LIGHT = hexc("7d8288")
-LENS_WARM = hexc("d7e0c0")
-
-
 # ===========================================================================
 #  Weapon recipes
 # ===========================================================================
@@ -101,83 +85,87 @@ LENS_WARM = hexc("d7e0c0")
 # space     source orientation family: "ug" (ultimategun), "ts" (toonshooter),
 #           "proc" (authored directly in the working space)
 # length    final size in metres along `axis`
-# axis      "y" = along the barrel (guns/knife), "z" = height (grenades)
+# axis      "y" = along the barrel (guns/knife), "z" = height, "x" = width
 # accs      accessories / procedural add-ons joined in before atlasing
-# colors    material name -> sRGB colour
+# colors    material name -> sRGB hex finish
 # surfaces  material name -> palette surface treatment
+#
+# The source packs name materials by the artist's palette slot, not by role:
+# Grenade's "DarkGreen" is the *white* band, Knife_2's "DarkGrey" is 65% of the
+# blade, and every ultimategun model shares one 5-colour ramp. So the finishes
+# below are assigned to preserve each source material's **luminance rank** --
+# that keeps the artist's value structure (and therefore the readability of the
+# model) while the hue does the work of making the guns materially different.
 WEAPONS: dict = {
 
 # ------------------------------- PISTOLS ---------------------------------
 "p9": dict(
     kind="gun", space="ug", src="ultimategun/FBX/Pistol_2.fbx",
     length=0.22, axis="y",
-    note="issue sidearm: polymer frame, parkerised slide, no accessories",
+    note="issue sidearm: dark polymer frame, parkerised slide, stippled grip",
     accs=[],
-    colors={"Black": POLYMER_BLACK, "DarkMetal": hexc("31353a"),
-            "LightMetal": hexc("6e7378"), "Metal": PARKERIZED,
-            "Wood": hexc("2c2f33")},
-    surfaces={"Wood": "rubber", "Black": "rubber"},
+    colors={"Black": "232120", "Metal": "35322e", "Wood": "4a4640",
+            "LightMetal": "8b8880"},
+    surfaces={"Wood": "rubber", "Black": "rubber", "Metal": "rubber"},
 ),
 
 "talon": dict(
     kind="gun", space="ug", src="ultimategun/FBX/Pistol_4.fbx",
     length=0.235, axis="y",
-    note="large-frame hand cannon: blued slide over desert tan polymer frame",
+    note="large-frame hand cannon: blued steel over a desert tan polymer frame",
     accs=[],
-    colors={"Black": DESERT_TAN, "LightMetal": hexc("8d949c"),
-            "Metal": BLUED_STEEL},
-    surfaces={"Black": "rubber"},
+    colors={"Black": "2e2b2a", "Metal": "3f4a5c", "LightMetal": "a5885a"},
+    surfaces={"Black": "rubber", "LightMetal": "rubber"},
 ),
 
 "snub": dict(
     kind="gun", space="ug", src="ultimategun/FBX/Pistol_5.fbx",
     length=0.225, axis="y",
-    note="compact burst machine pistol: two-tone stainless over black polymer "
-         "with an underbarrel light module",
+    note="compact burst machine pistol: two-tone stainless over black polymer, "
+         "underbarrel light module",
     accs=[dict(src="ultimategun/FBX/Accessories/Flashlight.fbx",
-               mount="under_barrel", along=0.66, drop=0.02, fit_width=0.78)],
-    colors={"Black": POLYMER_BLACK, "LightMetal": STAINLESS,
-            "Metal": hexc("6a7076"), "Glass": LENS_WARM},
-    surfaces={"Black": "rubber", "Glass": "flat"},
+               mount="under_barrel", along=0.74, drop=0.14, fit_width=0.78)],
+    colors={"Black": "2e2b28", "Metal": "55524d", "LightMetal": "aeaba4",
+            "Acc_Black": "302d29", "Acc_Glass": "e8eecf"},
+    surfaces={"Black": "rubber", "Acc_Glass": "flat", "Acc_Black": "rubber"},
 ),
 
 # --------------------------------- SMGs ----------------------------------
 "viper45": dict(
     kind="gun", space="ug", src="ultimategun/FBX/SubmachineGun_4.fbx",
     length=0.60, axis="y",
-    note="boxy .45 SMG with a vertical foregrip and a stubby suppressor",
+    note="boxy .45 SMG: matte black polymer over gunmetal, stubby suppressor",
     accs=[dict(src="ultimategun/FBX/Accessories/Silencer_Short.fbx",
                mount="muzzle", inset=0.02, fit_width=0.60)],
-    colors={"Black": POLYMER_BLACK, "DarkMetal": hexc("2a2d31"),
-            "Grey": hexc("4a4f55"), "Metal": GUNMETAL},
-    surfaces={"Black": "rubber"},
+    colors={"Black": "262420", "Grey": "38352f", "DarkMetal": "423f39",
+            "Metal": "5d594f", "Acc_Black": "2c2a26"},
+    surfaces={"Black": "rubber", "Grey": "rubber", "Acc_Black": "rubber"},
 ),
 
 "mk9": dict(
     kind="gun", space="ug", src="ultimategun/FBX/SubmachineGun_5.fbx",
     length=0.62, axis="y",
-    note="long thin SMG, wire folding stock, low-mount optic, olive/park finish",
+    note="long thin SMG: olive-green receiver, wire folding stock, rail optic",
     accs=[dict(src="ultimategun/FBX/Accessories/Scope_3.fbx",
-               mount="rail", along=0.44, rise=0.0, fit_len=0.20)],
-    colors={"Black": hexc("2f3a33"), "DarkMetal": hexc("39423a"),
-            "Grey": hexc("6a7266"), "Metal": hexc("515a4e"),
-            "Glass": SCOPE_GLASS},
-    surfaces={"Black": "rubber", "Glass": "flat"},
+               mount="rail", along=0.46, rise=0.10, fit_len=0.20)],
+    colors={"Black": "2e332a", "Grey": "3f4536", "DarkMetal": "4a5240",
+            "Metal": "6d7556", "Acc_Black": "2a2c26",
+            "Acc_DarkMetal": "3a3f34", "Acc_Glass": "4d7ba8"},
+    surfaces={"Black": "rubber", "Acc_Glass": "flat", "Acc_Black": "rubber"},
 ),
 
 # -------------------------------- RIFLES ---------------------------------
 "ar77": dict(
-    kind="gun", space="ug", src="ultimategun/FBX/AssaultRifle2_4.fbx",
+    kind="gun", space="ug", src="ultimategun/FBX/AssaultRifle2_2.fbx",
     length=0.90, axis="y",
-    note="attacker carbine: AR pattern with carry handle, FDE furniture, "
-         "underbarrel light",
+    note="attacker carbine: AR pattern, full-length rail, collapsible stock, "
+         "flat dark earth furniture, underbarrel light",
     accs=[dict(src="ultimategun/FBX/Accessories/Flashlight.fbx",
-               mount="under_barrel", along=0.74, drop=0.02, fit_width=0.90)],
-    colors={"Black": hexc("1e2024"), "DarkMetal": hexc("24262a"), "Main": FDE,
-            "MainDark": hexc("4c4132"), "MainLight": hexc("94815f"),
-            "Metal": hexc("36393d"), "Glass": LENS_WARM},
+               mount="under_barrel", along=0.72, drop=0.16, fit_width=0.90)],
+    colors={"MainDark": "34322c", "Main": "87734f", "MainLight": "aa946c",
+            "Acc_Black": "2b2926", "Acc_Glass": "e8eecf"},
     surfaces={"Main": "rubber", "MainDark": "rubber", "MainLight": "rubber",
-              "Glass": "flat"},
+              "Acc_Glass": "flat", "Acc_Black": "rubber"},
 ),
 
 "br52": dict(
@@ -186,21 +174,24 @@ WEAPONS: dict = {
     note="defender rifle: long-stroke pattern, walnut furniture, blued steel, "
          "side-rail optic",
     accs=[dict(src="ultimategun/FBX/Accessories/Scope_3.fbx",
-               mount="rail", along=0.40, rise=0.0, fit_len=0.19)],
-    colors={"Black": hexc("22242a"), "DarkMetal": BLUED_STEEL,
-            "DarkWood": hexc("472c16"), "Metal": hexc("343d4a"),
-            "Wood": WALNUT, "Glass": SCOPE_GLASS},
-    surfaces={"Wood": "wood", "DarkWood": "wood", "Glass": "flat"},
+               mount="rail", along=0.40, rise=0.10, fit_len=0.28)],
+    colors={"Black": "2a2926", "DarkMetal": "3d434c", "Metal": "4e535d",
+            "DarkWood": "5f4224", "Wood": "855c33", "Acc_Black": "2b2926",
+            "Acc_DarkMetal": "3b3f45", "Acc_Glass": "4d7ba8"},
+    surfaces={"Wood": "wood", "DarkWood": "wood", "Acc_Glass": "flat",
+              "Acc_Black": "rubber"},
 ),
 
 "sr1": dict(
     kind="gun", space="ug", src="ultimategun/FBX/SniperRifle_4.fbx",
     length=1.15, axis="y",
-    note="bolt sniper: olive drab chassis, big glass, folding bipod",
+    note="bolt sniper: olive drab chassis, black action, big glass, "
+         "folding bipod",
     accs=[dict(src="ultimategun/FBX/Accessories/Bipod.fbx",
-               mount="under_barrel", along=0.74, drop=0.02, fit_height=0.40)],
-    colors={"Black": hexc("22251f"), "DarkMetal": hexc("2b3128"),
-            "Glass": SCOPE_GLASS, "Grey": OLIVE, "Metal": hexc("4a5140")},
+               mount="under_barrel", along=0.70, drop=0.12, fit_height=0.50)],
+    colors={"Glass": "33547a", "Black": "2d2f28", "Grey": "3b3e31",
+            "DarkMetal": "464c37", "Metal": "68704e", "Acc_Black": "2b2926",
+            "Acc_DarkMetal": "3d4139"},
     surfaces={"Grey": "rubber", "Black": "rubber", "Glass": "flat"},
 ),
 
@@ -208,28 +199,29 @@ WEAPONS: dict = {
 "breacher12": dict(
     kind="gun", space="ug", src="ultimategun/FBX/Shotgun_1.fbx",
     length=1.00, axis="y",
-    note="tactical pump shotgun: black polymer, blued barrel, breaching light",
+    note="tactical pump shotgun: black polymer furniture, blued barrel and "
+         "magazine tube, breaching light",
     accs=[dict(src="ultimategun/FBX/Accessories/Flashlight.fbx",
-               mount="under_barrel", along=0.58, drop=0.02, fit_width=0.95)],
-    colors={"Black": POLYMER_BLACK, "DarkMetal": hexc("1e2228"),
-            "LightMetal": hexc("737a82"), "Metal": BLUED_STEEL,
-            "Glass": LENS_WARM},
-    surfaces={"Black": "rubber", "Glass": "flat"},
+               mount="under_barrel", along=0.70, drop=0.16, fit_width=0.95)],
+    colors={"Black": "2b2825", "DarkMetal": "333f4f", "Metal": "495060",
+            "LightMetal": "8a857b", "Acc_Black": "2b2926",
+            "Acc_Glass": "e8eecf"},
+    surfaces={"Black": "rubber", "Acc_Glass": "flat", "Acc_Black": "rubber"},
 ),
 
 "mule": dict(
     kind="gun", space="ug", src="ultimategun/FBX/AssaultRifle_4.fbx",
     length=1.05, axis="y",
-    note="belt-fed heavy: parkerised receiver, 100-round box magazine, "
-         "vented heavy barrel, bipod",
+    note="belt-fed heavy: parkerised receiver, olive furniture, 100-round box "
+         "magazine, vented heavy barrel, bipod",
     accs=[dict(src="ultimategun/FBX/Accessories/Bipod.fbx",
-               mount="under_barrel", along=0.82, drop=0.02, fit_height=0.40),
+               mount="under_barrel", along=0.82, drop=0.12, fit_height=0.44),
           dict(kind="boxmag"),
           dict(kind="shroud")],
-    colors={"Black": hexc("2a2c2e"), "DarkMetal": hexc("34383a"),
-            "DarkWood": hexc("3a3f34"), "Metal": PARKERIZED,
-            "Wood": hexc("4d5443"), "TS_Ammo": hexc("4b5240"),
-            "TS_Accent": BRASS},
+    colors={"Black": "2f2d29", "DarkMetal": "46443d", "Metal": "62605a",
+            "DarkWood": "585e44", "Wood": "686f50", "TS_Ammo": "525939",
+            "TS_Accent": "8a6a2c", "Acc_Black": "2b2926",
+            "Acc_DarkMetal": "40443a"},
     surfaces={"Wood": "rubber", "DarkWood": "rubber", "TS_Ammo": "metal",
               "TS_Accent": "metal"},
 ),
@@ -238,10 +230,9 @@ WEAPONS: dict = {
 "knife": dict(
     kind="melee", space="ts", src="toonshooter/Guns/glTF/Knife_2.gltf",
     length=0.30, axis="y",
-    note="combat knife: satin blade, black ribbed rubber grip",
+    note="combat knife: satin blade, blued guard, black ribbed rubber grip",
     accs=[],
-    colors={"Black": RUBBER_BLACK, "DarkGrey": hexc("3a3f45"),
-            "LightGrey": hexc("aeb4ba")},
+    colors={"Black": "2b2925", "DarkGrey": "4d5049", "LightGrey": "b8b5ae"},
     surfaces={"Black": "rubber", "LightGrey": "metal", "DarkGrey": "metal"},
 ),
 
@@ -249,10 +240,10 @@ WEAPONS: dict = {
 "frag": dict(
     kind="grenade", space="ts", src="toonshooter/Guns/glTF/Grenade.gltf",
     length=0.115, axis="z",
-    note="fragmentation grenade: olive drab body, steel fuse and spoon",
+    note="fragmentation grenade: olive drab body, steel fuse and spoon, "
+         "painted ID band",
     accs=[],
-    colors={"DarkGreen": OLIVE_DARK, "DarkGrey": hexc("42474d"),
-            "Green": OLIVE},
+    colors={"DarkGrey": "585c58", "Green": "636d3c", "DarkGreen": "c2c4b2"},
     surfaces={"Green": "metal", "DarkGreen": "metal", "DarkGrey": "metal"},
 ),
 
@@ -262,9 +253,8 @@ WEAPONS: dict = {
     note="stun grenade: tall bare-steel canister, three rings of emission "
          "ports, brass fuse (original procedural design)",
     accs=[],
-    colors={"TS_Body": hexc("8e949a"), "TS_Band": hexc("1d1f22"),
-            "TS_Port": hexc("15171a"), "TS_Fuse": hexc("55595b"),
-            "TS_Accent": hexc("c9a227")},
+    colors={"TS_Port": "1e2022", "TS_Band": "2f2d2a", "TS_Fuse": "6e706e",
+            "TS_Body": "92948f", "TS_Accent": "9a8a3f"},
     surfaces={"TS_Body": "metal", "TS_Band": "rubber", "TS_Port": "metal",
               "TS_Fuse": "metal", "TS_Accent": "metal"},
 ),
@@ -275,9 +265,8 @@ WEAPONS: dict = {
     note="smoke canister: squat wide olive body, ribbed steel emitter cap, "
          "base vents (original procedural design)",
     accs=[],
-    colors={"TS_Body": OLIVE, "TS_Band": hexc("2b3020"),
-            "TS_Port": hexc("6d737a"), "TS_Fuse": hexc("4c5157"),
-            "TS_Accent": hexc("b8bec4")},
+    colors={"TS_Band": "343925", "TS_Fuse": "5a5c58", "TS_Body": "636d3f",
+            "TS_Port": "6e706c", "TS_Accent": "b3b5a4"},
     surfaces={"TS_Body": "metal", "TS_Band": "rubber", "TS_Port": "metal",
               "TS_Fuse": "metal", "TS_Accent": "metal"},
 ),
@@ -287,8 +276,8 @@ WEAPONS: dict = {
     length=0.128, axis="z",
     note="incendiary canister: fire-red body, hazard banding, steel fuse",
     accs=[],
-    colors={"Black": hexc("1d1f22"), "DarkRed": hexc("6d1a12"),
-            "Grey": hexc("b9bec4"), "Red": hexc("a8301c")},
+    colors={"Black": "2c2a29", "Red": "ac3c27", "Grey": "a9aaa6",
+            "DarkRed": "ddd8cc"},
     surfaces={"Red": "metal", "DarkRed": "metal", "Grey": "metal",
               "Black": "rubber"},
 ),
@@ -297,14 +286,12 @@ WEAPONS: dict = {
 "bomb": dict(
     kind="device", space="proc", src=None, proc="bomb",
     length=0.34, axis="y",
-    note="original demolition charge: ribbed case, keypad + LED strip, whip "
+    note="original demolition charge: ribbed case, keypad + LED strip, stub "
          "antenna, cargo straps, two shaped-charge blocks (procedural)",
     accs=[],
-    colors={"TS_Case": hexc("2f3338"), "TS_Panel": hexc("15171a"),
-            "TS_Key": hexc("5d646c"), "TS_Screen": hexc("2fbf5f"),
-            "TS_Strap": hexc("30250f"), "TS_Accent": HAZARD,
-            "TS_Charge": hexc("6d6250"), "TS_Wire": hexc("8f1f1f"),
-            "TS_Metal": STEEL_LIGHT},
+    colors={"TS_Panel": "262624", "TS_Case": "434644", "TS_Key": "63676a",
+            "TS_Screen": "3fd07a", "TS_Strap": "4d3f1e", "TS_Accent": "b8511a",
+            "TS_Charge": "82755c", "TS_Wire": "a52a24", "TS_Metal": "8c8a83"},
     surfaces={"TS_Case": "metal", "TS_Panel": "rubber", "TS_Key": "rubber",
               "TS_Screen": "flat", "TS_Strap": "fabric", "TS_Accent": "metal",
               "TS_Charge": "fabric", "TS_Wire": "rubber", "TS_Metal": "metal"},
@@ -313,13 +300,12 @@ WEAPONS: dict = {
 "defusekit": dict(
     kind="device", space="proc", src=None, proc="defusekit",
     length=0.24, axis="x",
-    note="original tool roll: canvas pouch, buckled flap, wire cutters and a "
-         "driver standing in the tool loops (procedural)",
+    note="original tool roll: canvas pouch with a buckled flap, wire cutters "
+         "laid across the top, coiled lead and a circuit tester (procedural)",
     accs=[],
-    colors={"TS_Canvas": hexc("4a4632"), "TS_CanvasDark": hexc("332f21"),
-            "TS_Strap": hexc("26210f"), "TS_Buckle": hexc("9aa0a6"),
-            "TS_Tool": hexc("6f767d"), "TS_ToolGrip": hexc("9c2118"),
-            "TS_Accent": hexc("c9a227")},
+    colors={"TS_Strap": "3e3520", "TS_CanvasDark": "494430",
+            "TS_Canvas": "645f40", "TS_Tool": "8e908d", "TS_Buckle": "928f87",
+            "TS_ToolGrip": "9c2f22", "TS_Accent": "b8912f"},
     surfaces={"TS_Canvas": "fabric", "TS_CanvasDark": "fabric",
               "TS_Strap": "fabric", "TS_Buckle": "metal", "TS_Tool": "metal",
               "TS_ToolGrip": "rubber", "TS_Accent": "metal"},
@@ -400,6 +386,41 @@ def merge_duplicate_materials(objs) -> None:
             m.name = base
 
 
+def prefix_materials(obj, prefix: str) -> None:
+    """Namespace an accessory's materials so it can carry its own finish.
+
+    Every ultimategun model and accessory shares one 5-colour material ramp, so
+    without this an optic's body is forced to the same slot as the rifle's
+    receiver and no scope can ever be a different colour from the gun it sits
+    on. Prefixing keeps them separate; merge_duplicate_materials still folds
+    two copies of the same accessory material together.
+    """
+    for m in obj.data.materials:
+        if m is not None and not m.name.startswith(prefix):
+            m.name = prefix + m.name.split(".")[0]
+
+
+def prune_unused_materials(obj) -> None:
+    """Drop material slots no polygon actually uses.
+
+    The FBX importer gives every ultimategun model the pack's full 5-colour
+    material list whether the mesh uses it or not, which would spend atlas
+    slots on colours that are never sampled (and make the per-weapon override
+    check report phantom materials).
+    """
+    me = obj.data
+    used = sorted({p.material_index for p in me.polygons})
+    if len(used) == len(me.materials):
+        return
+    keep = [me.materials[i] for i in used if i < len(me.materials)]
+    remap = {old: new for new, old in enumerate(used)}
+    me.materials.clear()
+    for m in keep:
+        me.materials.append(m)
+    for p in me.polygons:
+        p.material_index = remap.get(p.material_index, 0)
+
+
 def import_source(path_rel: str, name: str):
     """Import one CC0 file, join its meshes, drop everything else."""
     before = set(bpy.data.objects)
@@ -435,6 +456,84 @@ def fit_tris(obj, budget: int) -> int:
     print(f"    decimate: {n0} -> dissolve {n1} -> collapse {n2} "
           f"(budget {budget})")
     return n2
+
+
+# ===========================================================================
+#  Atlas UVs
+# ===========================================================================
+
+def _tri_wave(t: float) -> float:
+    """Continuous 0..1 triangle wave -- a tiling ramp with no seam."""
+    t = math.fmod(t, 2.0)
+    if t < 0.0:
+        t += 2.0
+    return 1.0 - abs(t - 1.0)
+
+
+def _reproject_uvs(obj, face_slots, jitter: float = 0.7) -> None:
+    """Rewrite the atlas UVs. Two corrections over ``atlas_remap``:
+
+    1. **V orientation.** ``palette.build_atlas`` draws slot *n* in image row
+       ``n // GRID`` counted from the *top* of the PNG, and ``patch_uv``
+       returns that row index directly as a V coordinate. But a Blender UV V is
+       measured from the *bottom*, and the glTF exporter writes ``1 - v``. The
+       two conventions cancel out to a vertical mirror, so an unmirrored model
+       samples row ``GRID-1-n//GRID`` instead of its own -- and since every
+       weapon here needs <= 9 slots, that is the all-black bottom row. (Symptom:
+       the model imports and renders fine but is uniformly near-black, tinted by
+       whatever ambient light is in the scene.) Mirroring V here fixes it while
+       leaving the atlas PNG in palette.py's canonical layout, so
+       ``palette.recolor_atlas`` cosmetic variants stay drop-in compatible.
+
+    2. **Seamless projection.** ``atlas_remap`` wraps its geometric projection
+       with ``% 1.0``; faces that straddle a wrap span the whole patch in UV
+       across a couple of millimetres of surface, which spikes the screen-space
+       UV derivative and pushes those faces to a high mip of the atlas. A
+       triangle wave gives the same varied grain with no discontinuity.
+    """
+    me = obj.data
+    uvl = me.uv_layers.active.data
+    verts = me.vertices
+    loops = me.loops
+    for poly, slot in zip(me.polygons, face_slots):
+        u0, v0, u1, v1 = palette.patch_uv(slot)
+        v0, v1 = 1.0 - v1, 1.0 - v0                  # (1)
+        cu, cv = (u0 + u1) * 0.5, (v0 + v1) * 0.5
+        hw, hh = (u1 - u0) * 0.5 * jitter, (v1 - v0) * 0.5 * jitter
+        for li in poly.loop_indices:
+            co = verts[loops[li].vertex_index].co
+            pu = _tri_wave(co.x * 1.7 + co.z * 0.31)   # (2)
+            pv = _tri_wave(co.y * 1.7 + co.x * 0.17)
+            uvl[li].uv = (cu + (pu - 0.5) * 2.0 * hw,
+                          cv + (pv - 0.5) * 2.0 * hh)
+
+
+def _seal_atlas(png_path: str, used: int) -> None:
+    """Fill the unused palette slots with the mean of the used ones.
+
+    The atlas ships mip-mapped and VRAM-compressed; leaving 55 of 64 slots pure
+    black means the coarse mips of a distant weapon average in that black and
+    the model darkens as it recedes. Painting the spare slots with the average
+    used colour makes the mip chain degrade to a plausible tone instead.
+    Slot geometry is untouched, so the layout stays canonical.
+    """
+    from PIL import Image
+    img = Image.open(png_path).convert("RGBA")
+    p = palette.PATCH_PX
+    px = img.load()
+    acc = [0, 0, 0]
+    for s in range(used):
+        gx, gy = s % palette.GRID, s // palette.GRID
+        c = px[gx * p + p // 2, gy * p + p // 2]
+        for i in range(3):
+            acc[i] += c[i]
+    mean = tuple(max(1, v // max(1, used)) for v in acc) + (255,)
+    for s in range(used, palette.GRID * palette.GRID):
+        gx, gy = s % palette.GRID, s // palette.GRID
+        for y in range(gy * p, (gy + 1) * p):
+            for x in range(gx * p, (gx + 1) * p):
+                px[x, y] = mean
+    img.save(png_path)
 
 
 # ===========================================================================
@@ -553,19 +652,20 @@ def build_flash(rec):
     body_h, body_r = 1.55, 0.46
     parts = [
         cyl("body", body_r, body_h, (0, 0, 0), mats["body"], segs=14),
-        cyl("rim_top", body_r * 1.05, 0.10, (0, 0, body_h * 0.5 - 0.05),
+        cyl("rim_top", body_r * 1.06, 0.11, (0, 0, body_h * 0.5 - 0.055),
             mats["band"], segs=14),
-        cyl("rim_bot", body_r * 1.05, 0.10, (0, 0, -body_h * 0.5 + 0.05),
+        cyl("rim_bot", body_r * 1.06, 0.11, (0, 0, -body_h * 0.5 + 0.055),
             mats["band"], segs=14),
-        cyl("waist", body_r * 1.03, 0.13, (0, 0, 0.02), mats["band"], segs=14),
+        cyl("waist", body_r * 1.04, 0.14, (0, 0, 0.02), mats["band"], segs=14),
     ]
+    # Ports read as holes, so they sit flush: a dark disc on the skin, not a stud.
     for k, z in enumerate((-0.42, 0.28, 0.60)):
         for i in range(6):
             a = 2 * math.pi * (i / 6.0) + (0.52 if k == 1 else 0.0)
-            parts.append(cyl(f"port{k}_{i}", 0.085, 0.12,
-                             (body_r * 0.96 * math.cos(a),
-                              body_r * 0.96 * math.sin(a), z),
-                             mats["port"], segs=6,
+            parts.append(cyl(f"port{k}_{i}", 0.095, 0.02,
+                             (body_r * 0.985 * math.cos(a),
+                              body_r * 0.985 * math.sin(a), z),
+                             mats["port"], segs=8,
                              rot=(0, math.radians(90), -a)))
     parts += _fuse_assembly(mats, body_h * 0.5, 1.0)
     return parts
@@ -583,11 +683,11 @@ def build_smoke(rec):
     body_h, body_r = 1.05, 0.62
     parts = [
         cyl("body", body_r, body_h, (0, 0, 0), mats["body"], segs=16),
-        cyl("rim_top", body_r * 1.05, 0.11, (0, 0, body_h * 0.5 - 0.055),
+        cyl("rim_top", body_r * 1.06, 0.12, (0, 0, body_h * 0.5 - 0.06),
             mats["band"], segs=16),
-        cyl("rim_bot", body_r * 1.05, 0.11, (0, 0, -body_h * 0.5 + 0.055),
+        cyl("rim_bot", body_r * 1.06, 0.12, (0, 0, -body_h * 0.5 + 0.06),
             mats["band"], segs=16),
-        box("label", (body_r * 1.30, 0.06, 0.30), (0, -body_r * 0.93, 0.02),
+        box("label", (body_r * 1.24, 0.05, 0.30), (0, -body_r * 0.99, 0.02),
             mats["accent"]),
     ]
     cap_z = body_h * 0.5 + 0.10
@@ -595,16 +695,16 @@ def build_smoke(rec):
                      segs=16, r2=body_r * 0.70))
     for i in range(8):
         a = 2 * math.pi * i / 8.0
-        parts.append(box(f"rib{i}", (0.055, body_r * 0.60, 0.09),
-                         (0.42 * body_r * math.cos(a),
-                          0.42 * body_r * math.sin(a), cap_z + 0.13),
+        parts.append(box(f"rib{i}", (0.06, body_r * 0.66, 0.12),
+                         (0.40 * body_r * math.cos(a),
+                          0.40 * body_r * math.sin(a), cap_z + 0.16),
                          mats["band"], rot=(0, 0, -a)))
     for i in range(6):
         a = 2 * math.pi * i / 6.0
-        parts.append(cyl(f"vent{i}", 0.075, 0.10,
-                         (body_r * 0.97 * math.cos(a),
-                          body_r * 0.97 * math.sin(a), -body_h * 0.30),
-                         mats["port"], segs=6, rot=(0, math.radians(90), -a)))
+        parts.append(cyl(f"vent{i}", 0.085, 0.02,
+                         (body_r * 0.985 * math.cos(a),
+                          body_r * 0.985 * math.sin(a), -body_h * 0.30),
+                         mats["port"], segs=8, rot=(0, math.radians(90), -a)))
     parts += _fuse_assembly(mats, cap_z + 0.10, 0.92)
     return parts
 
@@ -613,8 +713,8 @@ def build_bomb(rec):
     """Original plantable demolition charge.
 
     A ribbed equipment case with a keypad and LED strip on a tilted top plate,
-    a whip antenna, two cargo straps and two shaped-charge blocks wired into
-    the case. Original silhouette; nothing is traced from any commercial game.
+    a stub antenna, two cargo straps and two shaped-charge blocks wired into
+    the case. Original silhouette; nothing traced from any commercial game.
     Base sits on z = 0 -- it is a ground object.
     """
     m_case = _material("TS_Case", (0.18, 0.19, 0.21))
@@ -630,59 +730,64 @@ def build_bomb(rec):
     W, D, H = 0.62, 1.00, 0.42
     parts = [box("case", (W, D, H), (0, 0, H * 0.5), m_case)]
     for i, t in enumerate((-0.34, -0.12, 0.12, 0.34)):
-        parts.append(box(f"rib{i}", (W * 1.04, 0.055, H * 0.86),
+        parts.append(box(f"rib{i}", (W * 1.05, 0.06, H * 0.86),
                          (0, D * t, H * 0.48), m_panel))
     for sx in (-1, 1):
         for sy in (-1, 1):
-            parts.append(box(f"bump{sx}{sy}", (0.075, 0.075, H * 1.03),
+            parts.append(box(f"bump{sx}{sy}", (0.055, 0.055, H * 1.05),
                              (sx * W * 0.5, sy * D * 0.5, H * 0.5), m_accent))
     pz = H + 0.035
     parts.append(box("panel", (W * 0.84, D * 0.60, 0.07), (0, -D * 0.16, pz),
                      m_panel, rot=(math.radians(-7), 0, 0)))
-    parts.append(box("screen_bezel", (W * 0.70, D * 0.22, 0.03),
+    parts.append(box("screen_bezel", (W * 0.70, D * 0.22, 0.035),
                      (0, -D * 0.36, pz + 0.045), m_metal,
                      rot=(math.radians(-7), 0, 0)))
-    parts.append(box("screen", (W * 0.60, D * 0.16, 0.035),
-                     (0, -D * 0.36, pz + 0.062), m_screen,
+    parts.append(box("screen", (W * 0.58, D * 0.15, 0.04),
+                     (0, -D * 0.36, pz + 0.068), m_screen,
                      rot=(math.radians(-7), 0, 0)))
     for r in range(4):
         for c in range(3):
-            parts.append(box(f"key{r}{c}", (0.055, 0.055, 0.032),
+            parts.append(box(f"key{r}{c}", (0.06, 0.06, 0.04),
                              ((c - 1) * 0.15, -D * 0.14 + r * 0.115,
-                              pz + 0.055 + r * 0.014), m_key,
+                              pz + 0.06 + r * 0.014), m_key,
                              rot=(math.radians(-7), 0, 0)))
-    parts.append(cyl("lamp", 0.045, 0.05, (W * 0.31, -D * 0.45, pz + 0.06),
+    parts.append(cyl("lamp", 0.05, 0.06, (W * 0.31, -D * 0.45, pz + 0.065),
                      m_accent, segs=8))
-    parts.append(cyl("ant_base", 0.055, 0.09, (W * 0.36, D * 0.40, H + 0.04),
+    parts.append(cyl("ant_base", 0.06, 0.10, (W * 0.36, D * 0.40, H + 0.045),
                      m_metal, segs=8))
-    parts.append(cyl("antenna", 0.024, 0.70, (W * 0.40, D * 0.44, H + 0.41),
-                     m_panel, segs=6, rot=(math.radians(-9), 0, 0), r2=0.012))
-    parts.append(sphere("ant_tip", 0.037, (W * 0.435, D * 0.49, H + 0.75),
+    parts.append(cyl("antenna", 0.026, 0.42, (W * 0.39, D * 0.42, H + 0.28),
+                     m_panel, segs=6, rot=(math.radians(-9), 0, 0), r2=0.014))
+    parts.append(sphere("ant_tip", 0.04, (W * 0.415, D * 0.455, H + 0.50),
                         m_accent, segs=8, rings=5))
     for sy in (-0.30, 0.30):
-        parts.append(box(f"strap{sy}", (W * 1.07, 0.10, H * 1.07),
+        parts.append(box(f"strap{sy}", (W * 1.08, 0.11, H * 1.08),
                          (0, D * sy, H * 0.5), m_strap))
-        parts.append(box(f"buckle{sy}", (0.11, 0.14, 0.055),
-                         (0, D * sy, H * 1.07), m_metal))
+        parts.append(box(f"buckle{sy}", (0.13, 0.15, 0.06),
+                         (0, D * sy, H * 1.08), m_metal))
     for i, sx in enumerate((-1, 1)):
-        parts.append(box(f"charge{i}", (0.20, 0.12, H * 0.62),
+        parts.append(box(f"charge{i}", (0.21, 0.13, H * 0.62),
                          (sx * 0.19, -D * 0.55, H * 0.44), m_charge))
-        parts.append(box(f"charge_band{i}", (0.215, 0.05, H * 0.20),
+        parts.append(box(f"charge_band{i}", (0.225, 0.055, H * 0.22),
                          (sx * 0.19, -D * 0.55, H * 0.44), m_accent))
-        parts.append(cyl(f"wire{i}", 0.018, 0.32,
+        parts.append(cyl(f"wire{i}", 0.02, 0.32,
                          (sx * 0.19, -D * 0.45, H * 0.80), m_wire, segs=6,
                          rot=(math.radians(58), 0, 0)))
-    parts.append(box("handle_l", (0.05, 0.05, 0.14),
-                     (-W * 0.30, D * 0.20, H + 0.07), m_metal))
-    parts.append(box("handle_r", (0.05, 0.05, 0.14),
-                     (W * 0.30, D * 0.20, H + 0.07), m_metal))
-    parts.append(box("handle_bar", (W * 0.68, 0.05, 0.045),
-                     (0, D * 0.20, H + 0.15), m_strap))
+    parts.append(box("handle_l", (0.055, 0.055, 0.15),
+                     (-W * 0.30, D * 0.20, H + 0.075), m_metal))
+    parts.append(box("handle_r", (0.055, 0.055, 0.15),
+                     (W * 0.30, D * 0.20, H + 0.075), m_metal))
+    parts.append(box("handle_bar", (W * 0.70, 0.055, 0.05),
+                     (0, D * 0.20, H + 0.16), m_strap))
     return parts
 
 
 def build_defusekit(rec):
-    """Original defuse kit: a canvas tool roll with cutters and a driver."""
+    """Original defuse kit: a canvas tool roll with the cutters laid on top.
+
+    Tools lie *across* the pouch rather than standing in loops -- a compact
+    silhouette that still reads as "bag of tools" from any angle and at the
+    size this thing is actually seen (dropped on the floor, or as an icon).
+    """
     m_canvas = _material("TS_Canvas", (0.22, 0.21, 0.14))
     m_dark = _material("TS_CanvasDark", (0.13, 0.12, 0.08))
     m_strap = _material("TS_Strap", (0.10, 0.08, 0.03))
@@ -691,47 +796,53 @@ def build_defusekit(rec):
     m_grip = _material("TS_ToolGrip", (0.42, 0.07, 0.05))
     m_accent = _material("TS_Accent", (0.78, 0.63, 0.15))
 
-    W, D, H = 0.60, 0.34, 0.40
+    W, D, H = 0.62, 0.38, 0.30
     parts = [
         box("pouch", (W, D, H), (0, 0, H * 0.5), m_canvas),
-        box("pouch_front", (W * 0.92, 0.05, H * 0.62), (0, -D * 0.5, H * 0.42),
+        box("pocket", (W * 0.80, 0.055, H * 0.60), (0, -D * 0.50, H * 0.40),
             m_dark),
-        box("seam_l", (0.05, D * 1.03, H * 1.03), (-W * 0.5, 0, H * 0.5), m_dark),
-        box("seam_r", (0.05, D * 1.03, H * 1.03), (W * 0.5, 0, H * 0.5), m_dark),
-        box("flap", (W * 1.03, D * 0.74, 0.05), (0, D * 0.16, H + 0.03), m_dark,
-            rot=(math.radians(-12), 0, 0)),
-        box("flap_lip", (W * 1.03, 0.05, 0.10), (0, -D * 0.18, H + 0.015),
+        box("pocket_lip", (W * 0.80, 0.065, 0.05), (0, -D * 0.50, H * 0.70),
+            m_strap),
+        box("seam_l", (0.055, D * 1.04, H * 1.04), (-W * 0.5, 0, H * 0.5),
+            m_dark),
+        box("seam_r", (0.055, D * 1.04, H * 1.04), (W * 0.5, 0, H * 0.5),
+            m_dark),
+        box("base_welt", (W * 1.04, D * 1.04, 0.05), (0, 0, 0.025), m_dark),
+        # Flap folded over the top, hanging a little over the front edge.
+        box("flap", (W * 1.05, D * 0.92, 0.055), (0, D * 0.02, H + 0.03),
+            m_dark, rot=(math.radians(-5), 0, 0)),
+        box("flap_lip", (W * 1.05, 0.06, 0.10), (0, -D * 0.44, H + 0.005),
             m_canvas),
-        box("strap", (0.13, D * 1.08, 0.035), (-W * 0.22, 0, H + 0.06), m_strap),
-        box("buckle", (0.16, 0.10, 0.05), (-W * 0.22, -D * 0.44, H + 0.05),
-            m_buckle),
     ]
-    for i, sx in enumerate((-0.30, 0.02, 0.30)):
-        parts.append(box(f"loop{i}", (0.10, 0.045, H * 0.34),
-                         (W * sx, -D * 0.55, H * 0.55), m_strap))
-    # Wire cutters standing in the right loop: jaws up, red grips down.
-    cx = W * 0.30
+    # Two straps over the flap with buckles on the front face.
+    for sx in (-0.28, 0.28):
+        parts.append(box(f"strap{sx}", (0.12, D * 1.10, 0.04),
+                         (W * sx, 0, H + 0.065), m_strap))
+        parts.append(box(f"buckle{sx}", (0.15, 0.09, 0.055),
+                         (W * sx, -D * 0.47, H + 0.01), m_buckle))
+    # Wire cutters lying across the flap: jaws left, red grips right.
+    tz = H + 0.10
     parts += [
-        box("cut_jaw_l", (0.045, 0.05, 0.30), (cx - 0.035, -D * 0.53, H + 0.24),
-            m_tool, rot=(0, math.radians(-9), 0)),
-        box("cut_jaw_r", (0.045, 0.05, 0.30), (cx + 0.035, -D * 0.53, H + 0.24),
-            m_tool, rot=(0, math.radians(9), 0)),
-        cyl("cut_pivot", 0.055, 0.07, (cx, -D * 0.53, H + 0.09), m_buckle,
-            segs=8, rot=(0, math.radians(90), 0)),
-        box("cut_grip_l", (0.055, 0.06, 0.26), (cx - 0.055, -D * 0.53, H - 0.06),
-            m_grip, rot=(0, math.radians(11), 0)),
-        box("cut_grip_r", (0.055, 0.06, 0.26), (cx + 0.055, -D * 0.53, H - 0.06),
-            m_grip, rot=(0, math.radians(-11), 0)),
+        box("cut_jaw_l", (0.30, 0.05, 0.045), (-0.17, 0.035, tz), m_tool,
+            rot=(0, 0, math.radians(4))),
+        box("cut_jaw_r", (0.30, 0.05, 0.045), (-0.17, -0.035, tz), m_tool,
+            rot=(0, 0, math.radians(-4))),
+        cyl("cut_pivot", 0.055, 0.075, (0.02, 0, tz), m_buckle, segs=8),
+        box("cut_grip_l", (0.26, 0.06, 0.055), (0.19, 0.06, tz), m_grip,
+            rot=(0, 0, math.radians(-9))),
+        box("cut_grip_r", (0.26, 0.06, 0.055), (0.19, -0.06, tz), m_grip,
+            rot=(0, 0, math.radians(9))),
     ]
-    # Screwdriver in the left loop.
-    dx = -W * 0.30
+    # Coiled lead hooked on the right side, and a small circuit tester.
+    parts.append(torus("coil", 0.10, 0.022, (W * 0.5 + 0.02, D * 0.06, H * 0.52),
+                       m_grip, major=12, minor=4, rot=(0, math.radians(90), 0)))
     parts += [
-        cyl("drv_grip", 0.055, 0.24, (dx, -D * 0.53, H + 0.02), m_grip, segs=10),
-        cyl("drv_shaft", 0.022, 0.30, (dx, -D * 0.53, H + 0.28), m_buckle,
-            segs=6),
-        box("drv_tip", (0.05, 0.02, 0.05), (dx, -D * 0.53, H + 0.44), m_tool),
-        box("blade", (0.07, 0.03, 0.34), (W * 0.02, -D * 0.55, H + 0.17),
-            m_accent, rot=(0, math.radians(4), 0)),
+        box("tester", (0.15, 0.05, 0.11), (-W * 0.26, -D * 0.56, H * 0.58),
+            m_tool),
+        cyl("tester_lamp", 0.028, 0.04, (-W * 0.26, -D * 0.62, H * 0.72),
+            m_accent, segs=8, rot=(math.radians(90), 0, 0)),
+        box("driver", (0.05, 0.05, 0.30), (W * 0.30, -D * 0.55, H * 0.62),
+            m_accent, rot=(math.radians(14), 0, 0)),
     ]
     return parts
 
@@ -765,12 +876,12 @@ def _extreme_z_at(obj, x_lo, x_hi, top: bool):
 def _fit_scale(gun, acc, spec) -> float:
     """Scale factor sizing an accessory against the gun it bolts onto.
 
-    The source packs are not in a shared scale -- the "flashlight" is a third
-    as long as a pistol and as wide as a rifle receiver -- so accessory size is
+    The source packs are not in a shared scale -- the "flashlight" is a third as
+    long as a pistol yet as wide as a rifle receiver -- so accessory size is
     always expressed as a ratio of one of the gun's own extents:
-      fit_len    accessory length  = f * gun length (along the barrel)
-      fit_width  accessory width   = f * gun width  (lateral)
-      fit_height accessory height  = f * gun height
+      fit_len    accessory length = f * gun length (along the barrel)
+      fit_width  accessory width  = f * gun width  (lateral)
+      fit_height accessory height = f * gun height
     """
     glo, ghi = _bbox(gun)
     alo, ahi = _bbox(acc)
@@ -783,49 +894,64 @@ def _fit_scale(gun, acc, spec) -> float:
 
 
 def place_accessory(gun, acc, spec) -> None:
-    """Position an accessory on a source-space gun, from the gun's geometry."""
+    """Position an accessory on a source-space gun, from the gun's geometry.
+
+    ``drop`` / ``rise`` are overlap fractions of the *accessory's* own height,
+    so a scope always sinks the same visual amount into its rail and a light
+    always clears the barrel it hangs under, whatever the source scales are.
+    """
     xmin, xmax, span, axis_y, axis_z = _source_barrel_ref(gun)
     s = _fit_scale(gun, acc, spec)
     if abs(s - 1.0) > 1e-6:
         acc.scale = (s, s, s)
         _apply(acc, location=False, rotation=False, scale=True)
-    mount = spec["mount"]
     alo, ahi = _bbox(acc)
+    ah = max(1e-9, ahi.z - alo.z)
+    mount = spec["mount"]
 
     if mount == "muzzle":
         acc.location = (xmax - spec.get("inset", 0.02) * span - alo.x,
                         axis_y, axis_z)
     elif mount == "rail":
+        # Reference the top line over a *wide* window. A narrow one lands in
+        # the dip between the rear sight and the gas tube on a long-stroke
+        # rifle, and the optic then fills that notch instead of sitting proud
+        # of the gun -- present in the mesh, invisible in silhouette.
         x = xmin + spec["along"] * span
-        top = _extreme_z_at(gun, x - 0.10 * span, x + 0.10 * span, True)
+        top = _extreme_z_at(gun, x - 0.22 * span, x + 0.22 * span, True)
         acc.location = (x - (alo.x + ahi.x) * 0.5, axis_y,
-                        top + spec.get("rise", 0.0) * span - alo.z)
+                        top - spec.get("rise", 0.10) * ah - alo.z)
     elif mount == "under_barrel":
         x = xmin + spec["along"] * span
         bot = _extreme_z_at(gun, x - 0.07 * span, x + 0.07 * span, False)
         acc.location = (x - (alo.x + ahi.x) * 0.5, axis_y,
-                        bot + spec.get("drop", 0.05) * span - ahi.z)
+                        bot + spec.get("drop", 0.12) * ah - ahi.z)
     else:
         raise ValueError(f"unknown accessory mount: {mount}")
     _apply(acc)
+    lo, hi = _bbox(acc)
+    print(f"    [acc] {os.path.basename(spec['src'])} scale={s:.3f} "
+          f"{mount} x=[{lo.x:.2f},{hi.x:.2f}] z=[{lo.z:.2f},{hi.z:.2f}] "
+          f"(gun x=[{xmin:.2f},{xmax:.2f}] bore_z={axis_z:.2f})")
 
 
 def add_boxmag(gun):
     """A 100-round box magazine for the heavy. Source space, procedural."""
     xmin, _xmax, span, axis_y, _axis_z = _source_barrel_ref(gun)
-    bot = _extreme_z_at(gun, xmin + 0.34 * span, xmin + 0.52 * span, False)
+    x0 = xmin + 0.545 * span
+    bot = _extreme_z_at(gun, xmin + 0.50 * span, xmin + 0.60 * span, False)
     m = _material("TS_Ammo", (0.22, 0.24, 0.17))
     m2 = _material("TS_Accent", (0.34, 0.26, 0.10))
-    w = span * 0.075
+    w = span * 0.070
     parts = [
-        box("mag_body", (span * 0.20, w, span * 0.125),
-            (xmin + 0.43 * span, axis_y, bot - span * 0.055), m),
-        box("mag_lip", (span * 0.155, w * 0.86, span * 0.035),
-            (xmin + 0.43 * span, axis_y, bot + span * 0.004), m),
-        box("mag_latch", (span * 0.035, w * 1.04, span * 0.055),
-            (xmin + 0.315 * span, axis_y, bot - span * 0.05), m2),
-        box("belt", (span * 0.055, w * 0.55, span * 0.024),
-            (xmin + 0.545 * span, axis_y, bot + span * 0.012), m2),
+        box("mag_body", (span * 0.19, w, span * 0.09),
+            (x0, axis_y, bot - span * 0.012), m),
+        box("mag_lip", (span * 0.15, w * 0.86, span * 0.030),
+            (x0, axis_y, bot + span * 0.028), m),
+        box("mag_latch", (span * 0.028, w * 1.04, span * 0.04),
+            (x0 - span * 0.11, axis_y, bot - span * 0.020), m2),
+        box("belt", (span * 0.045, w * 0.5, span * 0.020),
+            (x0 + span * 0.112, axis_y, bot + span * 0.030), m2),
     ]
     for p in parts:
         _apply(p)
@@ -931,8 +1057,9 @@ def _markers(obj, kind: str) -> dict:
     axis_x, axis_z = c.x, c.z
     muzzle = Vector((axis_x, y_front, axis_z))
 
-    if kind == "grenade" or kind == "device":
-        # "Muzzle" on a thrown/planted object = the working end (fuse/antenna).
+    if kind in ("grenade", "device"):
+        # The "muzzle" of a thrown/planted object is its working end: the fuse
+        # on a grenade, the antenna/panel end of the charge.
         top = [v for v in vs if v.z >= z_top - 0.06 * H] or vs
         tc = _centroid(top)
         muzzle = Vector((tc.x, tc.y, z_top))
@@ -958,11 +1085,11 @@ def _markers(obj, kind: str) -> dict:
         shell = Vector((max(v.x for v in vs), y_front + 0.5 * L,
                         z_bot + 0.6 * H))
 
-    # GripR: the hand. Rear-biased centroid of the low geometry behind the
-    # trigger for guns (a magazine hangs low too but sits forward of the grip,
-    # so the rear bias rejects it); the handle centroid for a knife. Heights
-    # are measured *within the rear region* so a bipod hanging off the front
-    # cannot drag the threshold down.
+    # GripR: the firing hand. Rear-biased centroid of the low geometry behind
+    # the trigger for guns (the magazine hangs low too but sits forward of the
+    # grip, so the rear bias rejects it); the handle centroid for a knife.
+    # Heights are measured *within the rear region* so a bipod hanging off the
+    # front cannot drag the threshold down with it.
     if kind == "gun":
         rear = [v for v in vs if v.y >= y_front + 0.42 * L] or vs
         zr_bot = min(v.z for v in rear)
@@ -986,8 +1113,7 @@ def _markers(obj, kind: str) -> dict:
     if kind == "gun" and L > 0.35:
         fore = band(0.16, 0.42) or vs
         under = [v for v in fore if v.z <= axis_z] or fore
-        zl = _pct([v.z for v in under], 0.45)
-        zl = max(zl, axis_z - 0.55 * H)
+        zl = max(_pct([v.z for v in under], 0.45), axis_z - 0.55 * H)
         grip_l = Vector((axis_x, _centroid(fore).y, zl))
     else:
         grip_l = grip_r.copy()
@@ -1021,12 +1147,15 @@ def build_weapon(wid: str, rec: dict, debug_markers: bool = False) -> dict:
                 sources.append(f"procedural (this script): {spec['kind']}")
                 continue
             acc = import_source(spec["src"], f"{wid}_acc")
+            prune_unused_materials(acc)
+            prefix_materials(acc, "Acc_")
             place_accessory(gun, acc, spec)
             joins.append(acc)
             sources.append(spec["src"])
         gun = bc.join_meshes(joins, wid)
 
     merge_duplicate_materials([gun])
+    prune_unused_materials(gun)
     _apply(gun)
 
     orient(gun, resolve_space(rec))
@@ -1035,7 +1164,7 @@ def build_weapon(wid: str, rec: dict, debug_markers: bool = False) -> dict:
 
     marks = _markers(gun, rec["kind"])
 
-    # Origin: the right hand for held weapons, the base centre for things that
+    # Origin: the firing hand for held weapons, the base centre for things that
     # sit on the ground or in a palm.
     if rec["kind"] in ("gun", "melee"):
         anchor = marks["GripR"].copy()
@@ -1051,22 +1180,33 @@ def build_weapon(wid: str, rec: dict, debug_markers: bool = False) -> dict:
     os.makedirs(out_dir, exist_ok=True)
     atlas_png = os.path.join(out_dir, f"{wid}_atlas.png")
 
-    slots = bc.build_atlas_for([gun], atlas_png, overrides=rec.get("colors"),
+    colors = {k: hexc(v) for k, v in (rec.get("colors") or {}).items()}
+    slots = bc.build_atlas_for([gun], atlas_png, overrides=colors,
                                surfaces=rec.get("surfaces"))
-    missing = [m for m in (rec.get("colors") or {}) if m not in slots]
+    missing = [m for m in colors if m not in slots]
     if missing:
         print(f"    WARNING colour overrides matched nothing: {missing}")
-    unstyled = [m for m in slots if m not in (rec.get("colors") or {})]
+    unstyled = [m for m in slots if m not in colors]
     if unstyled:
         print(f"    WARNING materials with no colour override: {unstyled}")
+
+    # Capture face -> palette slot before atlas_remap collapses the material
+    # slots, so the UVs can be rebuilt afterwards (see _reproject_uvs).
+    names = [m.name if m else None for m in gun.data.materials]
+    face_slots = [slots.get(names[p.material_index] if
+                            p.material_index < len(names) else None, 0)
+                  for p in gun.data.polygons]
+
     bc.atlas_remap([gun], slots, atlas_png, material_name=f"TS_{wid}")
+    _reproject_uvs(gun, face_slots)
+    _seal_atlas(atlas_png, len(slots))
 
     for name, loc in marks.items():
         bc.add_marker(name, loc, parent=gun)
 
     if debug_markers:
         dbg = _material("TS_DebugMark", (1.0, 0.0, 0.35))
-        size = max(0.006, min(hi.y - lo.y, 0.5) * 0.022)
+        size = max(0.006, min(hi.y - lo.y, 0.5) * 0.03)
         for name, loc in marks.items():
             _apply(box(f"DBG_{name}", (size, size, size), tuple(loc), dbg))
         glb = os.path.join(OUT_ROOT, "_dbg", f"{wid}.glb")
@@ -1120,6 +1260,7 @@ def main() -> None:
             "markers": ["Muzzle", "ShellPort", "GripR", "GripL", "Sight"],
             "material": "one atlas-textured material -> one draw call",
             "tri_budget": TRI_BUDGET,
+            "aabb_size_m": "[width, height, length] in Godot axes",
         },
         "weapons": {},
     }
@@ -1148,9 +1289,9 @@ def main() -> None:
             f.write("\n")
         print(f"[manifest] {os.path.relpath(manifest_path, REPO)} "
               f"({len(manifest['weapons'])} weapons)")
-    print(f"[done] built {built} weapon(s), "
-          f"{sum(manifest['weapons'][w]['tris'] for w in manifest['weapons'])} "
-          f"tris total across the set")
+    print(f"[done] built {built} weapon(s); set total "
+          f"{sum(manifest['weapons'][w]['tris'] for w in manifest['weapons'])}"
+          f" tris")
 
 
 main()

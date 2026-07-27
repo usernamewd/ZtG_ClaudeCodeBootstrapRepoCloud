@@ -219,8 +219,8 @@ def _assign_face_uvs(mesh, slot_of_index: dict) -> None:
         fv = ((h >> 24) & 0xFFFF) / 65535.0
         # A narrow spread: enough tonal variation to read as a surface, not
         # enough to look like confetti.
-        u = u0 + (u1 - u0) * (0.30 + 0.40 * fu)
-        v = v0 + (v1 - v0) * (0.30 + 0.40 * fv)
+        u = u0 + (u1 - u0) * (0.42 + 0.16 * fu)
+        v = v0 + (v1 - v0) * (0.42 + 0.16 * fv)
         for li in poly.loop_indices:
             uv_layer.data[li].uv = (u, v)
     mesh.uv_layers.active = mesh.uv_layers["UVAtlas"]

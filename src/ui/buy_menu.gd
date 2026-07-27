@@ -45,7 +45,10 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_build()
-	_last_loadout = Persistence.get_value("last_loadout", []) as Array[String]
+	# A plain Array from JSON cannot be assigned to an Array[String]; copy it in.
+	_last_loadout.clear()
+	for id in Persistence.get_value("last_loadout", []):
+		_last_loadout.append(String(id))
 
 
 func bind(p_player: CharacterBase, p_round_director: Node) -> void:

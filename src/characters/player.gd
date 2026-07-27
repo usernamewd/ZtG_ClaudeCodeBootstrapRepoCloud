@@ -246,6 +246,15 @@ func _update_ads(delta: float) -> void:
 		_camera.fov = f
 
 
+## CharacterBase.respawn() writes global_transform, but the camera rig re-applies
+## the cached yaw every frame — so without re-seeding it the player snaps back to
+## their previous facing and spawns looking at a wall.
+func respawn(xform: Transform3D) -> void:
+	super.respawn(xform)
+	_yaw_deg = rad_to_deg(xform.basis.get_euler().y)
+	rotation = Vector3(0.0, deg_to_rad(_yaw_deg), 0.0)
+
+
 func _update_look(_delta: float) -> void:
 	var look := InputHub.consume_look()
 	if not alive:

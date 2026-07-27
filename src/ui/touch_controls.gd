@@ -59,6 +59,7 @@ var _by_id: Dictionary = {}
 var _touches: Dictionary = {}
 
 var _editing: bool = false
+var _edit_drag: bool = true
 var _input_enabled: bool = true
 var _ads_lit: bool = false
 var _crouch_lit: bool = false
@@ -171,6 +172,8 @@ func _touch_down(index: int, pos: Vector2) -> void:
 	st.kind = KIND_NONE
 
 	if _editing:
+		if not _edit_drag:
+			return  # an external layout editor owns the drag; do not consume it
 		var target := _movable_at(pos)
 		if target == null:
 			return
@@ -187,6 +190,14 @@ func _touch_down(index: int, pos: Vector2) -> void:
 
 	var b := _button_at(pos)
 	if b != null:
+		if b.is_held:
+			# Another finger already owns this button. Swallow the touch instead of
+			# claiming it, so lifting either finger cannot release the button early
+			# and the extra finger cannot leak into the look surface underneath.
+			st.kind = KIND_NONE
+			st.active = true
+			_accept()
+			return
 		st.kind = KIND_BUTTON
 		st.button = b
 		st.active = true
@@ -465,13 +476,28 @@ func set_input_enabled(on: bool) -> void:
 		release_all()
 
 
+## Layout-editing mode: controls stop writing to InputHub, show their move/resize
+## affordances, and become draggable here — unless an external layout editor
+## (src/ui/hud_editor.gd) is hosting this scene and doing the dragging itself, in
+## which case this yields the touches to it so nothing moves twice per finger.
 func set_editing(enabled: bool) -> void:
 	if _editing == enabled:
 		return
 	release_all()
 	_editing = enabled
+	if enabled:
+		_edit_drag = not _external_editor_present()
 	for c in _movables:
 		_mv_set_editing(c, enabled)
+
+
+func _external_editor_present() -> bool:
+	var p := get_parent()
+	while p != null:
+		if p.has_method("_begin_drag") and p.has_method("_store"):
+			return true
+		p = p.get_parent()
+	return false
 
 
 func reset_layout() -> void:

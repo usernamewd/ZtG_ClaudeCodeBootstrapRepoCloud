@@ -11,7 +11,8 @@
    "Sight"
   ],
   "material": "one atlas-textured material -> one draw call",
-  "tri_budget": 1500
+  "tri_budget": 1500,
+  "aabb_size_m": "[width, height, length] in Godot axes"
  },
  "weapons": {
   "p9": {
@@ -22,7 +23,7 @@
    "length_m": 0.22,
    "tris": 1200,
    "atlas_px": 512,
-   "atlas_slots": 5,
+   "atlas_slots": 4,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
@@ -64,7 +65,7 @@
    "sources": [
     "ultimategun/FBX/Pistol_2.fbx"
    ],
-   "note": "issue sidearm: polymer frame, parkerised slide, no accessories"
+   "note": "issue sidearm: dark polymer frame, parkerised slide, stippled grip"
   },
   "talon": {
    "id": "talon",
@@ -116,7 +117,7 @@
    "sources": [
     "ultimategun/FBX/Pistol_4.fbx"
    ],
-   "note": "large-frame hand cannon: blued slide over desert tan polymer frame"
+   "note": "large-frame hand cannon: blued steel over a desert tan polymer frame"
   },
   "snub": {
    "id": "snub",
@@ -126,7 +127,7 @@
    "length_m": 0.225,
    "tris": 1124,
    "atlas_px": 512,
-   "atlas_slots": 4,
+   "atlas_slots": 5,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
@@ -136,7 +137,7 @@
     ],
     "ShellPort": [
      0.0163,
-     0.08664,
+     0.09803,
      0.0963
     ],
     "GripR": [
@@ -169,7 +170,7 @@
     "ultimategun/FBX/Pistol_5.fbx",
     "ultimategun/FBX/Accessories/Flashlight.fbx"
    ],
-   "note": "compact burst machine pistol: two-tone stainless over black polymer with an underbarrel light module"
+   "note": "compact burst machine pistol: two-tone stainless over black polymer, underbarrel light module"
   },
   "viper45": {
    "id": "viper45",
@@ -179,7 +180,7 @@
    "length_m": 0.6,
    "tris": 1272,
    "atlas_px": 512,
-   "atlas_slots": 4,
+   "atlas_slots": 5,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
@@ -222,7 +223,7 @@
     "ultimategun/FBX/SubmachineGun_4.fbx",
     "ultimategun/FBX/Accessories/Silencer_Short.fbx"
    ],
-   "note": "boxy .45 SMG with a vertical foregrip and a stubby suppressor"
+   "note": "boxy .45 SMG: matte black polymer over gunmetal, stubby suppressor"
   },
   "mk9": {
    "id": "mk9",
@@ -232,18 +233,18 @@
    "length_m": 0.62,
    "tris": 1476,
    "atlas_px": 512,
-   "atlas_slots": 5,
+   "atlas_slots": 7,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
      0.0,
-     0.09905,
-     0.48172
+     0.10104,
+     0.4719
     ],
     "ShellPort": [
      0.01593,
-     0.14734,
-     0.20272
+     0.14855,
+     0.1929
     ],
     "GripR": [
      0.0,
@@ -252,30 +253,30 @@
     ],
     "GripL": [
      0.0,
-     0.07397,
-     0.29999
+     0.07597,
+     0.29017
     ],
     "Sight": [
      0.0,
-     0.16755,
-     0.07255
+     0.16685,
+     0.07513
     ]
    },
    "muzzle": [
     0.0,
-    0.09905,
-    0.48172
+    0.10104,
+    0.4719
    ],
    "aabb_size_m": [
     0.0393,
-    0.2302,
+    0.2275,
     0.62
    ],
    "sources": [
     "ultimategun/FBX/SubmachineGun_5.fbx",
     "ultimategun/FBX/Accessories/Scope_3.fbx"
    ],
-   "note": "long thin SMG, wire folding stock, low-mount optic, olive/park finish"
+   "note": "long thin SMG: olive-green receiver, wire folding stock, rail optic"
   },
   "ar77": {
    "id": "ar77",
@@ -283,20 +284,20 @@
    "atlas": "res://assets/weapons/ar77/ar77_atlas.png",
    "kind": "gun",
    "length_m": 0.9,
-   "tris": 1332,
+   "tris": 1477,
    "atlas_px": 512,
-   "atlas_slots": 7,
+   "atlas_slots": 5,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
      0.0,
-     0.23762,
-     0.64765
+     0.15918,
+     0.62121
     ],
     "ShellPort": [
-     0.03774,
-     0.27864,
-     0.24265
+     0.02313,
+     0.1871,
+     0.21621
     ],
     "GripR": [
      0.0,
@@ -305,30 +306,30 @@
     ],
     "GripL": [
      0.0,
-     -0.02923,
-     0.40001
+     0.12702,
+     0.34263
     ],
     "Sight": [
      0.0,
-     0.32508,
-     0.05727
+     0.21729,
+     0.0095
     ]
    },
    "muzzle": [
     0.0,
-    0.23762,
-    0.64765
+    0.15918,
+    0.62121
    ],
    "aabb_size_m": [
-    0.0745,
-    0.4852,
+    0.0502,
+    0.3339,
     0.9
    ],
    "sources": [
-    "ultimategun/FBX/AssaultRifle2_4.fbx",
+    "ultimategun/FBX/AssaultRifle2_2.fbx",
     "ultimategun/FBX/Accessories/Flashlight.fbx"
    ],
-   "note": "attacker carbine: AR pattern with carry handle, FDE furniture, underbarrel light"
+   "note": "attacker carbine: AR pattern, full-length rail, collapsible stock, flat dark earth furniture, underbarrel light"
   },
   "br52": {
    "id": "br52",
@@ -338,18 +339,18 @@
    "length_m": 0.92,
    "tris": 1476,
    "atlas_px": 512,
-   "atlas_slots": 6,
+   "atlas_slots": 8,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
      0.0,
-     0.16364,
-     0.55761
+     0.15179,
+     0.62825
     ],
     "ShellPort": [
-     0.0172,
-     0.14727,
-     0.14361
+     0.02545,
+     0.17684,
+     0.21425
     ],
     "GripR": [
      0.0,
@@ -358,23 +359,23 @@
     ],
     "GripL": [
      0.0,
-     0.12593,
-     0.30883
+     0.11278,
+     0.3805
     ],
     "Sight": [
      0.0,
-     0.19858,
-     -0.08937
+     0.23133,
+     -0.05248
     ]
    },
    "muzzle": [
     0.0,
-    0.16364,
-    0.55761
+    0.15179,
+    0.62825
    ],
    "aabb_size_m": [
-    0.0344,
-    0.2717,
+    0.0507,
+    0.3148,
     0.92
    ],
    "sources": [
@@ -391,18 +392,18 @@
    "length_m": 1.15,
    "tris": 1476,
    "atlas_px": 512,
-   "atlas_slots": 5,
+   "atlas_slots": 7,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
      0.0,
-     0.1187,
-     1.01718
+     0.12006,
+     1.02503
     ],
     "ShellPort": [
      0.02813,
-     0.18116,
-     0.49968
+     0.18252,
+     0.50753
     ],
     "GripR": [
      0.0,
@@ -411,22 +412,22 @@
     ],
     "GripL": [
      0.0,
-     0.05743,
-     0.70987
+     0.02679,
+     0.67899
     ],
     "Sight": [
      0.0,
-     0.1964,
-     0.11434
+     0.19776,
+     0.12218
     ]
    },
    "muzzle": [
     0.0,
-    0.1187,
-    1.01718
+    0.12006,
+    1.02503
    ],
    "aabb_size_m": [
-    0.0999,
+    0.1117,
     0.2447,
     1.15
    ],
@@ -434,7 +435,7 @@
     "ultimategun/FBX/SniperRifle_4.fbx",
     "ultimategun/FBX/Accessories/Bipod.fbx"
    ],
-   "note": "bolt sniper: olive drab chassis, big glass, folding bipod"
+   "note": "bolt sniper: olive drab chassis, black action, big glass, folding bipod"
   },
   "breacher12": {
    "id": "breacher12",
@@ -444,7 +445,7 @@
    "length_m": 1.0,
    "tris": 1426,
    "atlas_px": 512,
-   "atlas_slots": 5,
+   "atlas_slots": 6,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
@@ -454,7 +455,7 @@
     ],
     "ShellPort": [
      0.02364,
-     0.08742,
+     0.09948,
      0.35717
     ],
     "GripR": [
@@ -464,8 +465,8 @@
     ],
     "GripL": [
      0.0,
-     0.05834,
-     0.49183
+     0.05592,
+     0.5117
     ],
     "Sight": [
      0.0,
@@ -487,7 +488,7 @@
     "ultimategun/FBX/Shotgun_1.fbx",
     "ultimategun/FBX/Accessories/Flashlight.fbx"
    ],
-   "note": "tactical pump shotgun: black polymer, blued barrel, breaching light"
+   "note": "tactical pump shotgun: black polymer furniture, blued barrel and magazine tube, breaching light"
   },
   "mule": {
    "id": "mule",
@@ -497,18 +498,18 @@
    "length_m": 1.05,
    "tris": 1476,
    "atlas_px": 512,
-   "atlas_slots": 7,
+   "atlas_slots": 9,
    "origin": "GripR",
    "markers": {
     "Muzzle": [
      0.0,
-     0.26499,
-     0.66678
+     0.27137,
+     0.58012
     ],
     "ShellPort": [
-     0.0393,
-     0.23595,
-     0.19428
+     0.03153,
+     0.24396,
+     0.10762
     ],
     "GripR": [
      0.0,
@@ -517,23 +518,23 @@
     ],
     "GripL": [
      0.0,
-     0.21461,
-     0.41809
+     0.20979,
+     0.32552
     ],
     "Sight": [
      0.0,
-     0.30376,
-     -0.06194
+     0.31014,
+     -0.14859
     ]
    },
    "muzzle": [
     0.0,
-    0.26499,
-    0.66678
+    0.27137,
+    0.58012
    ],
    "aabb_size_m": [
-    0.1116,
-    0.3908,
+    0.1229,
+    0.3659,
     1.05
    ],
    "sources": [
@@ -542,7 +543,7 @@
     "procedural (this script): boxmag",
     "procedural (this script): shroud"
    ],
-   "note": "belt-fed heavy: parkerised receiver, 100-round box magazine, vented heavy barrel, bipod"
+   "note": "belt-fed heavy: parkerised receiver, olive furniture, 100-round box magazine, vented heavy barrel, bipod"
   },
   "knife": {
    "id": "knife",
@@ -594,7 +595,7 @@
    "sources": [
     "toonshooter/Guns/glTF/Knife_2.gltf"
    ],
-   "note": "combat knife: satin blade, black ribbed rubber grip"
+   "note": "combat knife: satin blade, blued guard, black ribbed rubber grip"
   },
   "frag": {
    "id": "frag",
@@ -646,7 +647,7 @@
    "sources": [
     "toonshooter/Guns/glTF/Grenade.gltf"
    ],
-   "note": "fragmentation grenade: olive drab body, steel fuse and spoon"
+   "note": "fragmentation grenade: olive drab body, steel fuse and spoon, painted ID band"
   },
   "flash": {
    "id": "flash",
@@ -654,7 +655,7 @@
    "atlas": "res://assets/weapons/flash/flash_atlas.png",
    "kind": "grenade",
    "length_m": 0.125,
-   "tris": 800,
+   "tris": 944,
    "atlas_px": 512,
    "atlas_slots": 5,
    "origin": "base_centre",
@@ -665,7 +666,7 @@
      -0.00094
     ],
     "ShellPort": [
-     0.03051,
+     0.02892,
      0.075,
      -0.0
     ],
@@ -691,9 +692,9 @@
     -0.00094
    ],
    "aabb_size_m": [
-    0.061,
+    0.0578,
     0.125,
-    0.0611
+    0.0593
    ],
    "sources": [
     "procedural (this script): flash"
@@ -706,7 +707,7 @@
    "atlas": "res://assets/weapons/smoke/smoke_atlas.png",
    "kind": "grenade",
    "length_m": 0.118,
-   "tris": 700,
+   "tris": 748,
    "atlas_px": 512,
    "atlas_slots": 5,
    "origin": "base_centre",
@@ -717,7 +718,7 @@
      -0.00097
     ],
     "ShellPort": [
-     0.04483,
+     0.04523,
      0.0708,
      -0.0
     ],
@@ -743,9 +744,9 @@
     -0.00097
    ],
    "aabb_size_m": [
-    0.0897,
+    0.0905,
     0.118,
-    0.0896
+    0.0905
    ],
    "sources": [
     "procedural (this script): smoke"
@@ -816,45 +817,45 @@
    "origin": "base_centre",
    "markers": {
     "Muzzle": [
-     0.07892,
-     0.36199,
-     -0.15614
+     0.07568,
+     0.29069,
+     -0.1483
     ],
     "ShellPort": [
-     0.10296,
-     0.21719,
+     0.10044,
+     0.17441,
      -0.0
     ],
     "GripR": [
      0.0,
-     0.16289,
-     -0.01074
+     0.13081,
+     -0.01302
     ],
     "GripL": [
      0.0,
-     0.16289,
-     -0.01074
+     0.13081,
+     -0.01302
     ],
     "Sight": [
      0.0,
-     0.36199,
-     -0.01074
+     0.29069,
+     -0.01302
     ]
    },
    "muzzle": [
-    0.07892,
-    0.36199,
-    -0.15614
+    0.07568,
+    0.29069,
+    -0.1483
    ],
    "aabb_size_m": [
-    0.2059,
-    0.362,
+    0.2009,
+    0.2907,
     0.34
    ],
    "sources": [
     "procedural (this script): bomb"
    ],
-   "note": "original demolition charge: ribbed case, keypad + LED strip, whip antenna, cargo straps, two shaped-charge blocks (procedural)"
+   "note": "original demolition charge: ribbed case, keypad + LED strip, stub antenna, cargo straps, two shaped-charge blocks (procedural)"
   },
   "defusekit": {
    "id": "defusekit",
@@ -862,51 +863,51 @@
    "atlas": "res://assets/weapons/defusekit/defusekit_atlas.png",
    "kind": "device",
    "length_m": 0.24,
-   "tris": 288,
+   "tris": 368,
    "atlas_px": 512,
    "atlas_slots": 7,
    "origin": "base_centre",
    "markers": {
     "Muzzle": [
-     -0.06646,
-     0.3216,
-     0.05701
+     0.00212,
+     0.15437,
+     -0.01054
     ],
     "ShellPort": [
      0.12,
-     0.19296,
+     0.09262,
      -0.0
     ],
     "GripR": [
-     0.0,
-     0.14472,
-     -0.00953
+     -0.00252,
+     0.06947,
+     -0.01054
     ],
     "GripL": [
-     0.0,
-     0.14472,
-     -0.00953
+     -0.00252,
+     0.06947,
+     -0.01054
     ],
     "Sight": [
-     0.0,
-     0.3216,
-     -0.00953
+     -0.00252,
+     0.15437,
+     -0.01054
     ]
    },
    "muzzle": [
-    -0.06646,
-    0.3216,
-    0.05701
+    0.00212,
+    0.15437,
+    -0.01054
    ],
    "aabb_size_m": [
     0.24,
-    0.3216,
-    0.1546
+    0.1544,
+    0.1666
    ],
    "sources": [
     "procedural (this script): defusekit"
    ],
-   "note": "original tool roll: canvas pouch, buckled flap, wire cutters and a driver standing in the tool loops (procedural)"
+   "note": "original tool roll: canvas pouch with a buckled flap, wire cutters laid across the top, coiled lead and a circuit tester (procedural)"
   }
  }
 }

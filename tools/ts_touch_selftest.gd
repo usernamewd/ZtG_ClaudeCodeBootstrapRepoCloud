@@ -218,6 +218,17 @@ func _run() -> void:
 	_touch(3, sp2 + Vector2(60.0, 0.0), false)
 	_touch(0, sp + Vector2(r, 0.0), false)
 
+	# --- two fingers on one button ---
+	_touch(0, _centre(fire), true)
+	_touch(1, _centre(fire) + Vector2(4.0, 4.0), true)
+	_ck(InputHub.fire_held, "two fingers on fire: still held")
+	_touch(1, _centre(fire) + Vector2(4.0, 4.0), false)
+	_ck(InputHub.fire_held and fire.is_held, "lifting the second finger does not release fire")
+	InputHub.consume_look()
+	_touch(0, _centre(fire), false)
+	_ck(not InputHub.fire_held, "lifting the owning finger releases fire")
+	_ck(InputHub.look_delta == Vector2.ZERO, "the extra finger never leaked into look")
+
 	# --- one-shots and toggles ---
 	_tap("jump")
 	_ck(InputHub.jump_pressed and InputHub.consume_jump() and not InputHub.jump_pressed,
@@ -287,13 +298,14 @@ func _run() -> void:
 	InputHub.ads_held = false
 	ads.active = false
 
-	# --- Settings.hud_layout override ---
+	# --- Settings.hud_layout override, anchor-relative ("off") ---
 	var def_pos := jump.position
 	var def_size := jump.size
-	Settings.hud_layout["jump"] = {"pos": Vector2(-520.0, -320.0), "scale": 1.4}
+	var def_global := jump.global_position
+	Settings.hud_layout["jump"] = {"off": [-520.0, -320.0], "scale": 1.4}
 	jump.apply_hud_layout()
 	_ck(_near(jump.size, (def_size * 1.4).round(), 1.5), "hud_layout scale resizes the button")
-	_ck(not _near(jump.position, def_pos, 1.0), "hud_layout pos moves the button")
+	_ck(not _near(jump.position, def_pos, 1.0), "hud_layout off moves the button")
 	_touch(5, _centre(jump), true)
 	_ck(InputHub.jump_pressed, "the moved button is hit at its new position")
 	InputHub.consume_jump()
@@ -301,16 +313,47 @@ func _run() -> void:
 	_touch(5, def_pos + def_size * 0.5, true)
 	_ck(not InputHub.jump_pressed, "the vacated default position no longer fires jump")
 	_touch(5, def_pos + def_size * 0.5, false)
+
+	# --- absolute "pos", the format src/ui/hud_editor.gd writes ---
+	var want_abs := def_global + Vector2(-140.0, -90.0)
+	Settings.hud_layout["jump"] = {"pos": [want_abs.x, want_abs.y], "scale": 1.0}
+	jump.apply_hud_layout()
+	_ck(_near(jump.global_position, want_abs, 1.5),
+		"absolute hud_editor pos is honoured (%v)" % jump.global_position)
+	_touch(5, _centre(jump), true)
+	_ck(InputHub.jump_pressed, "the button hits at the absolute position")
+	InputHub.consume_jump()
+	_touch(5, _centre(jump), false)
+	Settings.hud_layout["jump"] = {"pos": [9000.0, 9000.0], "scale": 1.0}
+	jump.apply_hud_layout()
+	_ck(jump.position.x < vp.x and jump.position.y < vp.y,
+		"an off-screen stored position is clamped back on-screen (%v)" % jump.position)
 	Settings.hud_layout.erase("jump")
 	jump.apply_hud_layout()
 	_ck(_near(jump.position, def_pos, 1.0) and _near(jump.size, def_size, 1.0),
 		"clearing the override restores the default placement")
 
 	# --- a layout that survived the JSON save file (Vector2 -> "(x, y)") ---
-	Settings.hud_layout["jump"] = {"pos": "(-480.0, -300.0)", "scale": 1.2}
+	Settings.hud_layout["jump"] = {"off": "(-480.0, -300.0)", "scale": 1.2}
 	jump.apply_hud_layout()
 	_ck(_near(jump.size, (def_size * 1.2).round(), 1.5) and not _near(jump.position, def_pos, 1.0),
-		"a JSON-round-tripped pos string still positions the button")
+		"a JSON-round-tripped offset string still positions the button")
+	Settings.hud_layout.erase("jump")
+	jump.apply_hud_layout()
+
+	# --- what store_layout writes must survive JSON and be readable by both ---
+	jump.nudge(Vector2(-30.0, -20.0))
+	var moved := jump.global_position
+	jump.store_layout()
+	var entry: Dictionary = Settings.hud_layout["jump"]
+	_ck(entry.has("pos") and entry.has("off") and entry.has("scale") and entry.has("anchor"),
+		"store_layout writes pos + off + anchor + scale")
+	var round_tripped: Variant = JSON.parse_string(JSON.stringify(Settings.hud_layout))
+	_ck(round_tripped is Dictionary, "the stored layout is JSON-serialisable")
+	Settings.hud_layout = round_tripped
+	jump.apply_hud_layout()
+	_ck(_near(jump.global_position, moved, 1.5),
+		"the layout survives a save/load round trip (%v vs %v)" % [jump.global_position, moved])
 	Settings.hud_layout.erase("jump")
 	jump.apply_hud_layout()
 
@@ -386,6 +429,26 @@ func _run() -> void:
 	Settings.hud_layout.erase("fire")
 	InputHub.reset()
 
+	# --- hosted by src/ui/hud_editor.gd: yield the drag to it ---
+	var host := _FakeEditor.new()
+	add_child(host)
+	var third := (load(SCENE) as PackedScene).instantiate() as TouchControls
+	host.add_child(third)
+	var j3 := third.get_control("jump") as TouchButton
+	third.set_editing(true)
+	var p3 := j3.position
+	_touch(0, _centre(j3), true)
+	_drag(0, _centre(j3), _centre(j3) + Vector2(-50.0, -50.0))
+	_touch(0, Vector2.ZERO, false)
+	_ck(_near(j3.position, p3, 0.5), "inside an external editor the control is not dragged twice")
+	_ck(j3.get_meta("hud_id") == "jump", "the external editor still sees hud_id metadata")
+	third.set_editing(false)
+	host.remove_child(third)
+	third.free()
+	remove_child(host)
+	host.free()
+	InputHub.reset()
+
 	# --- API used by the HUD ---
 	_tc.show_interact(false)
 	_ck(not interact.visible, "show_interact(false) hides the plant/defuse button")
@@ -397,6 +460,16 @@ func _run() -> void:
 	_touch(0, _centre(fire), false)
 	_tc.set_control_enabled("fire", true)
 	InputHub.reset()
+
+
+## Stands in for src/ui/hud_editor.gd: TouchControls detects a host that does its
+## own dragging by these two method names.
+class _FakeEditor extends Control:
+	func _begin_drag(_at: Vector2, _index: int) -> void:
+		pass
+
+	func _store(_c: Control) -> void:
+		pass
 
 
 func _pose_for_shot() -> void:

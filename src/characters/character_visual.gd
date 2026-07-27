@@ -218,11 +218,11 @@ func _build_animation_tree() -> void:
 	anim_tree = AnimationTree.new()
 	anim_tree.name = "AnimTree"
 	anim_tree.tree_root = tree
-	anim_tree.anim_player = anim_tree.get_path_to(anim_player)
 	anim_tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	# anim_player lives under the model, so the path can only be resolved once
+	# the tree node is itself in the scene — computing it before add_child gives
+	# "Parameter common_parent is null".
 	add_child(anim_tree)
-	# anim_player lives under the model, so the path must be re-resolved once
-	# the tree is in the scene.
 	anim_tree.anim_player = anim_tree.get_path_to(anim_player)
 	anim_tree.active = true
 

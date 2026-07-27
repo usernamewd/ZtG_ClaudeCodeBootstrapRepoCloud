@@ -50,7 +50,18 @@ func apply_graphics_preset() -> void:
 		PRESET_HIGH:
 			vp.scaling_3d_scale = 1.0
 			vp.msaa_3d = Viewport.MSAA_4X
+	apply_shadow_preset()
 	changed.emit()
+
+
+## Realtime shadows are the single largest GPU cost on a mid-range phone, so
+## Low and Medium run without them and rely on the baked/ambient lighting.
+## Maps add their sun to the "sun_light" group for this.
+func apply_shadow_preset() -> void:
+	var want_shadows := graphics_preset == PRESET_HIGH
+	for n in get_tree().get_nodes_in_group("sun_light"):
+		if n is DirectionalLight3D:
+			(n as DirectionalLight3D).shadow_enabled = want_shadows
 
 
 func to_dict() -> Dictionary:

@@ -246,10 +246,15 @@ func _clear_line(from: Vector3, to: Vector3, ignore_char: CharacterBase) -> bool
 	var col = hit.get("collider")
 	if col == null:
 		return true
-	# Hitting the target's own hitbox counts as seeing it.
-	if col.has_meta("char"):
-		var owner_char = col.get_meta("char")
-		if owner_char == ignore_char or (owner_char is NodePath and get_node_or_null(owner_char) == ignore_char):
+	# Hitting the target's own hitbox counts as seeing it. CharacterBase stamps
+	# both "char" (a NodePath) and "char_ref" (the object); use the reference so
+	# this is a plain identity test.
+	if col.has_meta("char_ref"):
+		if col.get_meta("char_ref") == ignore_char:
+			return true
+	elif col.has_meta("char"):
+		var p = col.get_meta("char")
+		if p is NodePath and get_node_or_null(p) == ignore_char:
 			return true
 	return false
 
@@ -842,6 +847,17 @@ func _on_bot_died(_attacker_id: int, _weapon_id: String, _headshot: bool) -> voi
 		blackboard.bomb_is_dropped = true
 		blackboard.bomb_dropped_pos = global_position
 	carrying_bomb = false
+
+
+## Re-seed the aim from the spawn transform; the aim direction is what drives
+## body yaw every tick, so a respawn without this leaves the bot facing wherever
+## it was looking when it died.
+func respawn(xform: Transform3D) -> void:
+	super.respawn(xform)
+	aim_dir = -xform.basis.z
+	_desired_dir = aim_dir
+	if eye:
+		eye.rotation.x = 0.0
 
 
 func reset_for_round() -> void:
