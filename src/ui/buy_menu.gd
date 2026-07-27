@@ -42,7 +42,7 @@ var _last_loadout: Array[String] = []
 
 func _ready() -> void:
 	theme = UITheme.build()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_build()
 	# A plain Array from JSON cannot be assigned to an Array[String]; copy it in.
@@ -68,17 +68,17 @@ func bind(p_player: CharacterBase, p_round_director: Node) -> void:
 func _build() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.62)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var root := MarginContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("margin_left", 24)
 	root.add_theme_constant_override("margin_right", 24)
 	root.add_theme_constant_override("margin_top", 18)
 	root.add_theme_constant_override("margin_bottom", 18)
 	add_child(root)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(UITheme.GAP))
@@ -168,9 +168,15 @@ func _build_grid_panel() -> Control:
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sc := ScrollContainer.new()
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Both the scroller and the grid must expand, or the grid collapses to its
+	# minimum width and the cards overlap each other.
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	p.add_child(sc)
 	_grid = GridContainer.new()
-	_grid.columns = 2
+	# One card per row: a weapon card is a wide name/stats/price strip, and two
+	# of them side by side are unreadable at phone width.
+	_grid.columns = 1
 	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grid.add_theme_constant_override("h_separation", int(UITheme.GAP))
 	_grid.add_theme_constant_override("v_separation", int(UITheme.GAP))
@@ -236,13 +242,16 @@ func _make_item_card(id: String, def: Dictionary) -> Control:
 	btn.gui_input.connect(func(e: InputEvent): if e is InputEventScreenTouch and e.pressed: _show_detail(id))
 
 	# The label stack lives inside the Button, so it must not eat the touch that
-	# triggers the purchase.
+	# triggers the purchase. A Button is not a container, so the stack has to be
+	# anchored — and the preset must be applied AFTER parenting, otherwise the
+	# offsets are computed against a zero-sized parent and every card collapses
+	# onto the same point.
 	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_right", 12)
 	btn.add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE

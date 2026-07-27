@@ -138,8 +138,8 @@ def saltline() -> dict:
     floors += [floor(0.0, -31.0, 20.0, 6.0, 0.0, "concrete", "aegis_spawn")]
     # Spawn markers must line up with the rotate-corridor gap (x −4..4) and face
     # into it; sitting them wider puts a player nose-first into a wall on spawn.
-    for x in [-3.0, -1.5, 0.0, 1.5, 3.0]:
-        markers.append(marker(x, -30.0, 0.0, 180.0, "def_spawn"))
+    for x in [-3.2, -1.6, 0.0, 1.6, 3.2]:
+        markers.append(marker(x, -30.0 - abs(x) * 0.35, 0.0, 180.0, "def_spawn"))
 
     # ---- Mid: courtyard with a central silo -------------------------------
     # The silo is why crossing mid is survivable: it breaks the straight
@@ -200,7 +200,7 @@ def saltline() -> dict:
     # ---- Havoc (attacker) spawn -------------------------------------------
     floors += [floor(0.0, 28.0, 24.0, 8.0, 0.0, "concrete", "havoc_spawn")]
     for x in [-8.0, -4.0, 0.0, 4.0, 8.0]:
-        markers.append(marker(x, 29.0, 0.0, 0.0, "atk_spawn"))
+        markers.append(marker(x, 29.0 + abs(x) * 0.25, 0.0, 0.0, "atk_spawn"))
 
     # ---- Bot navigation hints ---------------------------------------------
     markers += [

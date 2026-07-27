@@ -31,8 +31,8 @@ Markers are Empties parented to the mesh and export as Node3D:
 Muzzle / ShellPort / GripR / GripL / Sight. Every one is derived from the actual
 vertex cloud (see `_markers`), never from a hardcoded guess.
 
-Two things this script has to correct on top of the shared helpers -- see
-`_reproject_uvs` and `_seal_atlas` for the details and the reasoning.
+`_reproject_uvs` and `_seal_atlas` extend the shared helpers; see their
+docstrings for why.
 """
 from __future__ import annotations
 
@@ -114,8 +114,10 @@ WEAPONS: dict = {
     length=0.235, axis="y",
     note="large-frame hand cannon: blued steel over a desert tan polymer frame",
     accs=[],
-    colors={"Black": "2e2b2a", "Metal": "44464f", "LightMetal": "9a7f52"},
-    surfaces={"Black": "rubber", "LightMetal": "rubber"},
+    # Deliberately breaks the luminance-rank rule: "Black" is the frame and
+    # grip here, and putting the tan there is what makes the two-tone read.
+    colors={"Black": "a5885a", "Metal": "3b4350", "LightMetal": "8d8a83"},
+    surfaces={"Black": "rubber", "LightMetal": "metal"},
 ),
 
 "snub": dict(
@@ -471,25 +473,19 @@ def _tri_wave(t: float) -> float:
 
 
 def _reproject_uvs(obj, face_slots, jitter: float = 0.7) -> None:
-    """Rewrite the atlas UVs. Two corrections over ``atlas_remap``:
+    """Rewrite the atlas UVs with a *seamless* geometric projection.
 
-    1. **V orientation.** ``palette.build_atlas`` draws slot *n* in image row
-       ``n // GRID`` counted from the *top* of the PNG, and ``patch_uv``
-       returns that row index directly as a V coordinate. But a Blender UV V is
-       measured from the *bottom*, and the glTF exporter writes ``1 - v``. The
-       two conventions cancel out to a vertical mirror, so an unmirrored model
-       samples row ``GRID-1-n//GRID`` instead of its own -- and since every
-       weapon here needs <= 9 slots, that is the all-black bottom row. (Symptom:
-       the model imports and renders fine but is uniformly near-black, tinted by
-       whatever ambient light is in the scene.) Mirroring V here fixes it while
-       leaving the atlas PNG in palette.py's canonical layout, so
-       ``palette.recolor_atlas`` cosmetic variants stay drop-in compatible.
+    ``blender_common.atlas_remap`` wraps its projection with ``% 1.0``. Faces
+    that straddle a wrap span their whole patch in UV across a couple of
+    millimetres of surface, which spikes the screen-space UV derivative and
+    drops those faces to a coarse mip of the atlas -- so a handful of faces
+    on every model shade differently from their neighbours. A triangle wave
+    tiles the same way with no discontinuity, so the grain still varies across
+    a surface but the derivative stays tiny and every face samples mip 0.
 
-    2. **Seamless projection.** ``atlas_remap`` wraps its geometric projection
-       with ``% 1.0``; faces that straddle a wrap span the whole patch in UV
-       across a couple of millimetres of surface, which spikes the screen-space
-       UV derivative and pushes those faces to a high mip of the atlas. A
-       triangle wave gives the same varied grain with no discontinuity.
+    Row/column placement is left entirely to ``palette.patch_uv``; the atlas
+    painter agrees with it (see palette._patch_cell), so nothing is mirrored
+    here -- doing so would double-flip and land every face on an unpainted slot.
     """
     me = obj.data
     uvl = me.uv_layers.active.data
@@ -497,15 +493,27 @@ def _reproject_uvs(obj, face_slots, jitter: float = 0.7) -> None:
     loops = me.loops
     for poly, slot in zip(me.polygons, face_slots):
         u0, v0, u1, v1 = palette.patch_uv(slot)
-        v0, v1 = 1.0 - v1, 1.0 - v0                  # (1)
         cu, cv = (u0 + u1) * 0.5, (v0 + v1) * 0.5
         hw, hh = (u1 - u0) * 0.5 * jitter, (v1 - v0) * 0.5 * jitter
         for li in poly.loop_indices:
             co = verts[loops[li].vertex_index].co
-            pu = _tri_wave(co.x * 1.7 + co.z * 0.31)   # (2)
+            pu = _tri_wave(co.x * 1.7 + co.z * 0.31)
             pv = _tri_wave(co.y * 1.7 + co.x * 0.17)
             uvl[li].uv = (cu + (pu - 0.5) * 2.0 * hw,
                           cv + (pv - 0.5) * 2.0 * hh)
+
+
+def _patch_pixel_cell(slot: int):
+    """Image-space (column, row) of a palette slot, row 0 at the top.
+
+    Derived from the public ``patch_uv`` rather than palette's private helper,
+    so this stays correct whichever way the atlas painter numbers its rows --
+    the invariant is only that painting and patch_uv agree.
+    """
+    u0, v0, u1, v1 = palette.patch_uv(slot)
+    gx = int(((u0 + u1) * 0.5) * palette.GRID)
+    gy = int((1.0 - (v0 + v1) * 0.5) * palette.GRID)
+    return (min(palette.GRID - 1, max(0, gx)), min(palette.GRID - 1, max(0, gy)))
 
 
 def _seal_atlas(png_path: str, used: int) -> None:
@@ -523,13 +531,13 @@ def _seal_atlas(png_path: str, used: int) -> None:
     px = img.load()
     acc = [0, 0, 0]
     for s in range(used):
-        gx, gy = s % palette.GRID, s // palette.GRID
+        gx, gy = _patch_pixel_cell(s)
         c = px[gx * p + p // 2, gy * p + p // 2]
         for i in range(3):
             acc[i] += c[i]
     mean = tuple(max(1, v // max(1, used)) for v in acc) + (255,)
     for s in range(used, palette.GRID * palette.GRID):
-        gx, gy = s % palette.GRID, s // palette.GRID
+        gx, gy = _patch_pixel_cell(s)
         for y in range(gy * p, (gy + 1) * p):
             for x in range(gx * p, (gx + 1) * p):
                 px[x, y] = mean
@@ -1060,8 +1068,12 @@ def _markers(obj, kind: str) -> dict:
     # Muzzle: the forward-most 3% of the cloud is the crown of the barrel, so
     # its lateral/vertical centroid is the bore -- not a bbox corner.
     tip = [v for v in vs if v.y <= y_front + 0.03 * L] or vs
-    c = _centroid(tip)
-    axis_x, axis_z = c.x, c.z
+    # Median, not mean: on guns whose front sight post reaches as far forward
+    # as the crown, a mean drags the "bore" up onto the sight. The crown is a
+    # ring of a dozen-odd verts and the post only a handful, so the median
+    # stays on the barrel.
+    axis_x = _pct([v.x for v in tip], 0.5)
+    axis_z = _pct([v.z for v in tip], 0.5)
     muzzle = Vector((axis_x, y_front, axis_z))
 
     if kind in ("grenade", "device"):
@@ -1098,13 +1110,19 @@ def _markers(obj, kind: str) -> dict:
     # Heights are measured *within the rear region* so a bipod hanging off the
     # front cannot drag the threshold down with it.
     if kind == "gun":
-        rear = [v for v in vs if v.y >= y_front + 0.42 * L] or vs
+        # The firing hand sits just behind the trigger, which on every one of
+        # these silhouettes (pistol, SMG, rifle, shotgun) falls in the 56-84%
+        # stretch measured back from the muzzle. Bounding the search that way
+        # -- rather than "everything behind the midpoint" -- keeps a magazine,
+        # an ammo box or a stock from owning the answer. Heights are measured
+        # inside the band so a bipod up front cannot drag the floor down.
+        rear = band(0.56, 0.84) or [v for v in vs if v.y >= y_front + 0.5 * L] or vs
         zr_bot = min(v.z for v in rear)
         hr = max(1e-6, max(v.z for v in rear) - zr_bot)
-        low = [v for v in rear if v.z <= zr_bot + 0.38 * hr]
+        low = [v for v in rear if v.z <= zr_bot + 0.40 * hr]
         if len(low) < 8:
-            low = [v for v in rear if v.z <= zr_bot + 0.65 * hr] or rear
-        y_cut = _pct([v.y for v in low], 0.55)
+            low = [v for v in rear if v.z <= zr_bot + 0.70 * hr] or rear
+        y_cut = _pct([v.y for v in low], 0.50)
         sel = [v for v in low if v.y >= y_cut] or low
         g = _centroid(sel)
         grip_r = Vector((axis_x, g.y, g.z))

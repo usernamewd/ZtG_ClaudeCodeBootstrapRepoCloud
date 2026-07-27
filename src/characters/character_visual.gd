@@ -48,8 +48,11 @@ const ANIM_CANDIDATES := {
 
 ## Hand bone the weapon attaches to, with fallbacks across naming conventions.
 const HAND_BONE_CANDIDATES := ["Middle1.R", "LowerArm.R", "Hand.R", "hand.R", "mixamorig:RightHand"]
-## Bones collapsed to hide the player's own arms in first person.
-const FP_HIDE_BONES := ["Shoulder.L", "Shoulder.R"]
+## Bones collapsed to hide the player's own arms and head in first person.
+## "Neck" matters as well as the separate Head mesh: helmet and balaclava
+## geometry is weighted into the Body mesh, so hiding Head alone still leaves the
+## inside of the helmet filling the camera when the player looks down.
+const FP_HIDE_BONES := ["Shoulder.L", "Shoulder.R", "Neck"]
 
 @export var model_path: NodePath
 @export var first_person: bool = false
@@ -66,6 +69,9 @@ var _head_mesh: GeometryInstance3D = null
 var _body_meshes: Array[GeometryInstance3D] = []
 var _resolved := {}                        ## logical name -> real animation name
 var _playback: AnimationNodeStateMachinePlayback = null
+var _owner_char: CharacterBase = null
+var _fp_bone_ids: PackedInt32Array = PackedInt32Array()
+var _was_dead := false
 
 # Locomotion parameter smoothing so the blend space doesn't jitter.
 var _blend_pos := Vector2.ZERO
@@ -95,6 +101,28 @@ func _ready() -> void:
 	_setup_aim_offset()
 	_setup_hand_attachment()
 	set_first_person(first_person)
+
+	# Self-drive from the owning CharacterBase. Without this the model sits in
+	# its rest pose forever, because neither the player controller nor the bot
+	# brain knows this node exists.
+	_owner_char = _find_owner_character()
+	_align_feet_to_origin()
+	set_process(_owner_char != null)
+
+
+## Drop the model so the lowest point of its mesh sits at this node's origin,
+## which is the character's foot level. The source rigs do not share a common
+## origin convention, so measuring is more reliable than a hard-coded offset.
+func _align_feet_to_origin() -> void:
+	var lowest := INF
+	for m in _body_meshes:
+		var mi := m as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var local: AABB = (global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+		lowest = minf(lowest, local.position.y)
+	if is_finite(lowest) and _model:
+		_model.position.y -= lowest
 
 
 func _find_first_model() -> Node3D:
@@ -218,7 +246,10 @@ func _build_animation_tree() -> void:
 	anim_tree = AnimationTree.new()
 	anim_tree.name = "AnimTree"
 	anim_tree.tree_root = tree
-	anim_tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	# Physics callback so this node's idle _process runs AFTER the tree has
+	# written its poses; otherwise the first-person bone collapse below is
+	# overwritten before the frame is drawn.
+	anim_tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	# anim_player lives under the model, so the path can only be resolved once
 	# the tree node is itself in the scene — computing it before add_child gives
 	# "Parameter common_parent is null".
@@ -386,13 +417,12 @@ func set_first_person(enabled: bool) -> void:
 	first_person = enabled
 	if _head_mesh:
 		_head_mesh.visible = not enabled
-	if skeleton:
-		for bone_name in FP_HIDE_BONES:
-			var idx := skeleton.find_bone(bone_name)
-			if idx >= 0:
-				# Scaling to a hair above zero keeps the skinning matrices
-				# well-conditioned; exact zero can produce NaNs on some drivers.
-				skeleton.set_bone_pose_scale(idx, Vector3.ONE * (0.001 if enabled else 1.0))
+	# The collapse is applied by the AimOffset modifier, which runs after the
+	# AnimationTree has written its poses — doing it here would be overwritten
+	# before the frame is drawn.
+	if aim_offset:
+		aim_offset.set_hidden_bones(
+			PackedStringArray(FP_HIDE_BONES) if enabled else PackedStringArray())
 	# The body must still cast a shadow and be visible to the camera, so only
 	# the head is hidden — never the whole mesh.
 	for m in _body_meshes:
@@ -430,6 +460,67 @@ func _apply_atlas(gi: GeometryInstance3D, atlas: Texture2D) -> void:
 
 
 # ---------------------------------------------------------------------------
+
+## Collapse the local player's own head and arms so the first-person camera sees
+## legs and torso but not the inside of their own skull. Reapplied every frame
+## because the AnimationTree rewrites all bone poses.
+func _apply_fp_hiding() -> void:
+	if not first_person or skeleton == null:
+		return
+	if _fp_bone_ids.is_empty():
+		for bone_name in FP_HIDE_BONES:
+			var idx := skeleton.find_bone(bone_name)
+			if idx >= 0:
+				_fp_bone_ids.append(idx)
+		if _fp_bone_ids.is_empty():
+			return
+	for b in _fp_bone_ids:
+		# Not exactly zero: a degenerate skinning matrix can produce NaNs.
+		skeleton.set_bone_pose_scale(b, Vector3.ONE * 0.0005)
+
+
+func _find_owner_character() -> CharacterBase:
+	var n: Node = get_parent()
+	while n != null:
+		if n is CharacterBase:
+			return n as CharacterBase
+		n = n.get_parent()
+	return null
+
+
+func _process(delta: float) -> void:
+	if _owner_char == null or not is_instance_valid(_owner_char):
+		set_process(false)
+		return
+
+	if not _owner_char.alive:
+		if not _was_dead:
+			_was_dead = true
+			play_death(CharacterBase.Zone.CHEST)
+		return
+	elif _was_dead:
+		_was_dead = false
+		revive()
+
+	# Velocity in the character's own basis, so the blend space reads strafe on
+	# x and forward on -z regardless of which way the body is facing.
+	var local_vel: Vector3 = _owner_char.global_transform.basis.inverse() * _owner_char.velocity
+	update_locomotion(delta, local_vel, _owner_char.is_on_floor(),
+		_owner_char.is_crouching, CharacterBase.SPEED_RUN)
+
+	_apply_fp_hiding()
+
+	# Upper body tracks where the character is actually aiming.
+	var pitch := 0.0
+	if _owner_char.has_method("look_direction"):
+		var d: Vector3 = _owner_char.look_direction()
+		pitch = rad_to_deg(asin(clampf(d.y, -1.0, 1.0)))
+	elif _owner_char.eye:
+		pitch = rad_to_deg(_owner_char.eye.rotation.x)
+	# Lean into a hard strafe; small, but it sells the weight of the movement.
+	var lean: float = clampf(-local_vel.x / CharacterBase.SPEED_RUN, -1.0, 1.0) * 7.0
+	set_aim(pitch, 0.0, lean)
+
 
 func _find_node_of_type(root: Node, type_name: String) -> Node:
 	if root == null:

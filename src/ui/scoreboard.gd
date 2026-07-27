@@ -22,7 +22,7 @@ var _sorted: Array = []
 
 func _ready() -> void:
 	theme = UITheme.build()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_build()
 
@@ -30,16 +30,16 @@ func _ready() -> void:
 func _build() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.70)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 30)
 	margin.add_theme_constant_override("margin_right", 30)
 	margin.add_theme_constant_override("margin_top", 22)
 	margin.add_theme_constant_override("margin_bottom", 22)
 	add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", int(UITheme.GAP))

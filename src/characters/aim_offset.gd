@@ -32,8 +32,15 @@ const MAX_YAW_DEG := 35.0
 @export var yaw_deg: float = 0.0
 @export var lean_deg: float = 0.0          ## roll, used for a subtle strafe lean
 
+## Bones collapsed to nothing — how first person hides the local player's own
+## head and arms. This has to happen here rather than once at setup: the
+## AnimationTree rewrites every bone pose each frame, so a scale applied outside
+## a SkeletonModifier3D is overwritten before it is ever drawn.
+@export var hidden_bones: PackedStringArray = PackedStringArray()
+
 var _bone_ids: PackedInt32Array = PackedInt32Array()
 var _weights: PackedFloat32Array = PackedFloat32Array()
+var _hidden_ids: PackedInt32Array = PackedInt32Array()
 var _resolved := false
 
 
@@ -61,12 +68,43 @@ func _resolve() -> void:
 		for i in _weights.size():
 			_weights[i] = _weights[i] / total
 
+	_hidden_ids.clear()
+	for bone_name in hidden_bones:
+		var h := sk.find_bone(String(bone_name))
+		if h >= 0:
+			_hidden_ids.append(h)
+
+
+## Re-resolve after the hidden set changes.
+func set_hidden_bones(names: PackedStringArray) -> void:
+	hidden_bones = names
+	_resolved = false
+
+
+## Godot 4.5 calls the delta variant; 4.4 calls the plain one. Implement both so
+## the modifier runs regardless of which the engine picks — if neither fires, the
+## aim offset silently does nothing and first person shows the player's own head.
+func _process_modification_with_delta(_delta: float) -> void:
+	_apply()
+
 
 func _process_modification() -> void:
+	_apply()
+
+
+func _apply() -> void:
 	if not _resolved:
 		_resolve()
 	var sk := get_skeleton()
-	if sk == null or _bone_ids.is_empty():
+	if sk == null:
+		return
+
+	# A hair above zero rather than exactly zero: a fully degenerate skinning
+	# matrix produces NaNs on some mobile drivers.
+	for h in _hidden_ids:
+		sk.set_bone_pose_scale(h, Vector3.ONE * 0.0005)
+
+	if _bone_ids.is_empty():
 		return
 
 	var pitch := deg_to_rad(clampf(pitch_deg, -MAX_DOWN_DEG, MAX_UP_DEG))

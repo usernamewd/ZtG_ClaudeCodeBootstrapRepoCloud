@@ -53,13 +53,15 @@ var _nametags: Nametags = null
 
 var _stats := {"kills": 0, "rounds_won": 0, "rounds_played": 0}
 var _autopilot := false
+var _look_down := false
 var _autopilot_time := 0.0
 var _ending := false
 
 
 func _ready() -> void:
 	add_to_group("match_controller")
-	_autopilot = OS.get_environment("TS_AUTOPILOT") != ""
+	_look_down = OS.get_environment("TS_LOOKDOWN") != ""
+	_autopilot = OS.get_environment("TS_AUTOPILOT") != "" or _look_down
 	Settings.apply_graphics_preset()
 
 	_setup_pools()
@@ -128,9 +130,47 @@ func _spawn_player() -> void:
 	GameState.register_player(LOCAL_PLAYER_ID, Settings.player_name,
 		GameState.cfg_player_team, true)
 	player.died.connect(_on_character_died.bind(player))
+	_attach_body(player, true)
+
+
+## Give a character its team model. In first person the head mesh is hidden and
+## the arm bones collapsed, so the local player looks down and sees their own
+## animated legs and torso while the viewmodel supplies the arms.
+func _attach_body(c: CharacterBase, first_person: bool) -> void:
+	if c == null:
+		return
+	var holder := c.get_node_or_null("Body") as Node3D
+	if holder == null:
+		holder = c.get_node_or_null("Mesh") as Node3D
+	if holder == null:
+		return
+	# The bot scene already carries a CharacterVisual; don't add a second.
+	for child in holder.get_children():
+		if child.get_script() == load("res://src/characters/character_visual.gd"):
+			return
+	var glb := "res://assets/characters/%s.glb" % (
+		"havoc" if c.team == GameState.Team.ATK else "aegis")
+	if not ResourceLoader.exists(glb):
+		return
+	var visual := Node3D.new()
+	visual.name = "CharacterVisual"
+	visual.set_script(load("res://src/characters/character_visual.gd"))
+	var model := (load(glb) as PackedScene).instantiate()
+	model.name = "Model"
+	# Assemble fully before parenting: CharacterVisual resolves its skeleton and
+	# builds the animation tree in _ready, which fires the moment it enters the
+	# scene, so the model has to already be its child.
+	visual.add_child(model)
+	visual.set("model_path", NodePath("Model"))
+	visual.set("first_person", first_person)
+	holder.add_child(visual)
 
 
 func _spawn_bots() -> void:
+	# Capture aid: TS_SOLO runs the match with no bots, so a screenshot of the
+	# local player's own body isn't blocked by a teammate on the next spawn pad.
+	if OS.get_environment("TS_SOLO") != "":
+		return
 	bot_director = BotDirector.new()
 	bot_director.name = "BotDirector"
 	add_child(bot_director)
@@ -221,6 +261,15 @@ func _build_hud() -> void:
 		_scoreboard.toggle(), "score"))
 
 	_buy_menu.bind(player, round_director)
+
+	# Capture aid: TS_SHOW=buy|score opens an overlay on start so the phase-gate
+	# screenshots can be produced headlessly.
+	match OS.get_environment("TS_SHOW"):
+		"buy":
+			_buy_menu.in_buy_zone = true
+			_buy_menu.open_menu()
+		"score":
+			_scoreboard.show_board()
 
 
 func _make_hud_button(text: String, at: Vector2, cb: Callable,
@@ -478,6 +527,16 @@ func leave_match() -> void:
 func _run_autopilot(delta: float) -> void:
 	_autopilot_time += delta
 	var t := _autopilot_time
+
+	if _look_down:
+		# Walk forward so the legs are mid-stride, and pitch the camera down to
+		# the player's own feet — the capture that proves full-body first person.
+		InputHub.move = Vector2(0.0, 1.0)
+		# Drive the pitch hard to the clamp so the shot is genuinely looking at
+		# the player's own feet, not a shallow downward glance.
+		InputHub.look_delta = Vector2(0.0, 12.0) if t < 3.0 else Vector2.ZERO
+		return
+
 	InputHub.move = Vector2(sin(t * 0.7) * 0.4, 1.0 if t < 4.0 else 0.2)
 	InputHub.look_delta = Vector2(sin(t * 0.35) * 2.2, cos(t * 0.5) * 0.5)
 	InputHub.fire_held = fmod(t, 3.0) > 2.1

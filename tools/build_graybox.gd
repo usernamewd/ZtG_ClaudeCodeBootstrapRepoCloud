@@ -62,6 +62,14 @@ const JUMP_APEX := 0.911
 const CROUCH_GAP := 1.30    # < STAND_HEIGHT 1.8, > CROUCH_HEIGHT 1.25
 const STAND_GAP := 2.00
 
+# Sign facings: the compass direction the READABLE face of a sign points at.
+# Label3D draws on its local +Z (not the Node3D -Z "forward"), so these yaws are
+# the opposite of what a Marker3D would need.
+const FACE_N := 180.0
+const FACE_S := 0.0
+const FACE_E := 90.0
+const FACE_W := -90.0
+
 var _root: Node3D
 var _geo: Node3D
 var _body: StaticBody3D
@@ -204,18 +212,27 @@ func _box_shape(size: Vector3) -> BoxShape3D:
 	return s
 
 
-func _sign(nm: String, text: String, pos: Vector3, font_size: int = 64,
-		pixel_size: float = 0.016, col: Color = Color(1, 1, 1)) -> void:
+## Signs are fixed-orientation, not billboards: a billboarded Label3D reports an
+## AABB big enough to cover every rotation, which for a 20 m wide caption drags
+## the map's merged AABB metres below the floor and puts tools/map_preview.gd's
+## eye-level camera underground. Pass `yaw_deg` as one of the FACE_* constants.
+func _sign(nm: String, text: String, pos: Vector3, yaw_deg: float,
+		font_size: int = 64, pixel_size: float = 0.016,
+		col: Color = Color(1, 1, 1)) -> void:
 	var l := Label3D.new()
 	l.name = nm
 	l.text = text
 	l.position = pos
+	l.rotation_degrees = Vector3(0.0, yaw_deg, 0.0)
 	l.font_size = font_size
 	l.outline_size = maxf(float(font_size) * 0.18, 8.0)
 	l.pixel_size = pixel_size
 	l.modulate = col
 	l.outline_modulate = Color(0.05, 0.06, 0.07, 1.0)
-	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	# Depth-writing cutout instead of blended transparency, so signs sort
+	# correctly against the blocks they label.
+	l.alpha_cut = Label3D.ALPHA_CUT_DISCARD
 	l.double_sided = true
 	l.shaded = false
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -316,9 +333,10 @@ func _add_range_lane() -> void:
 	_box("LaneFiringPad", Vector3(FIRING_X, 0.02, LANE_Z),
 		Vector3(2.0, 0.04, LANE_HALF_W * 2.0), "mark", false)
 	_sign("SignFiringLine", "FIRING LINE",
-		Vector3(FIRING_X, 2.6, LANE_Z), 72, 0.020, Color(1.0, 0.86, 0.35))
+		Vector3(FIRING_X, 2.6, LANE_Z), FACE_E, 72, 0.020, Color(1.0, 0.86, 0.35))
 	_sign("SignRangeLane", "RANGE LANE — DAMAGE FALLOFF",
-		Vector3(FIRING_X + 24.0, 4.6, LANE_Z), 72, 0.024, Color(1.0, 0.86, 0.35))
+		Vector3(FIRING_X + 24.0, 4.6, LANE_Z), FACE_E, 72, 0.024,
+		Color(1.0, 0.86, 0.35))
 
 	for i in range(1, 10):
 		var metres := float(i) * 10.0
@@ -330,7 +348,7 @@ func _add_range_lane() -> void:
 		_box("LanePost%d" % int(metres), Vector3(x, 0.9, LANE_Z + LANE_HALF_W),
 			Vector3(0.3, 1.8, 0.3), "block")
 		_sign("SignRange%d" % int(metres), "%d m" % int(metres),
-			Vector3(x, 2.3, LANE_Z + LANE_HALF_W), 64, 0.018)
+			Vector3(x, 2.3, LANE_Z + LANE_HALF_W), FACE_W, 64, 0.018)
 
 	# Inner rail: crouch-safe cover (MAP_DESIGN half-height is 1.1 m) that also
 	# stops strays from wandering out of the lane. Split at the centre so the
@@ -341,13 +359,13 @@ func _add_range_lane() -> void:
 	_box("LaneRailEast", Vector3(26.0, 0.55, rail_z), Vector3(40.0, 1.1, 0.5),
 		"block")
 	_sign("SignLaneRail", "HALF COVER 1.10 m", Vector3(-26.0, 1.9, rail_z),
-		56, 0.014)
+		FACE_N, 56, 0.014)
 
 
 ## Jump steps, two headroom gates and a ramp-fed platform.
 func _add_movement_gym() -> void:
-	_sign("SignGym", "MOVEMENT GYM", Vector3(-32.0, 5.0, 16.0), 80, 0.026,
-		Color(0.55, 0.85, 1.0))
+	_sign("SignGym", "MOVEMENT GYM", Vector3(-32.0, 5.0, 16.0), FACE_E, 80,
+		0.026, Color(0.55, 0.85, 1.0))
 
 	# Jump steps: 0.90 clears the 0.911 m apex, 1.20 does not.
 	var heights := PackedFloat32Array([0.30, 0.60, 0.90, 1.20])
@@ -357,9 +375,9 @@ func _add_movement_gym() -> void:
 		_box("JumpStep%d" % i, Vector3(x, h * 0.5, 16.0),
 			Vector3(2.6, h, 2.6), "block")
 		_sign("SignJumpStep%d" % i, "%.2f m" % h, Vector3(x, h + 0.9, 16.0),
-			48, 0.013)
+			FACE_S, 48, 0.013)
 	_sign("SignJumpApex", "JUMP APEX %.2f m" % JUMP_APEX,
-		Vector3(-40.0, 3.0, 16.0), 56, 0.014)
+		Vector3(-40.0, 3.4, 16.0), FACE_S, 56, 0.014)
 
 	_headroom_gate("CrouchGate", Vector3(-44.0, 0.0, 9.0), CROUCH_GAP,
 		"CROUCH ONLY — %.2f m" % CROUCH_GAP)
@@ -373,7 +391,7 @@ func _add_movement_gym() -> void:
 	_ramp("GymRamp", Vector3(-16.0, 0.0, 2.0), Vector3(-22.0, 2.5, 2.0),
 		4.0, 0.6, "wall")
 	_sign("SignGymPlatform", "PLATFORM 2.50 m / RAMP 22.6°",
-		Vector3(-27.0, 4.0, 2.0), 56, 0.016)
+		Vector3(-27.0, 4.0, 2.0), FACE_E, 56, 0.016)
 
 	# A tall pillar and a crouch-safe block beside the platform so cover work can
 	# be tested at two heights side by side.
@@ -392,14 +410,15 @@ func _headroom_gate(nm: String, base: Vector3, gap: float, label: String) -> voi
 		Vector3(0.8, top, depth), "wall")
 	_box(nm + "Lintel", base + Vector3(0.0, (gap + top) * 0.5, 0.0),
 		Vector3(opening, top - gap, depth), "wall")
-	_sign("Sign" + nm, label, base + Vector3(0.0, top + 0.8, 0.0), 56, 0.014)
+	_sign("Sign" + nm, label, base + Vector3(0.0, top + 0.8, 0.0), FACE_S, 56,
+		0.014)
 
 
 ## Four labelled walls of increasing thickness with a firing mark in front of
 ## each and a witness backstop behind, so a penetrating round is visible.
 func _add_penetration_gallery() -> void:
 	_sign("SignPenGallery", "PENETRATION GALLERY",
-		Vector3(-30.0, 5.0, -8.0), 80, 0.026, Color(0.55, 0.85, 1.0))
+		Vector3(-30.0, 5.0, -8.0), FACE_S, 80, 0.026, Color(0.55, 0.85, 1.0))
 
 	var wall_z := -16.0
 	var fire_z := -10.0
@@ -421,14 +440,15 @@ func _add_penetration_gallery() -> void:
 		var nm := String(s["nm"])
 		_box("Wall" + nm, Vector3(x, 1.6, wall_z), Vector3(5.0, 3.2, t),
 			String(s["mat"]))
-		_sign("Sign" + nm, String(s["label"]), Vector3(x, 4.1, wall_z), 52, 0.014)
+		_sign("Sign" + nm, String(s["label"]), Vector3(x, 4.4, wall_z), FACE_S,
+			52, 0.014)
 		_box("FireMark" + nm, Vector3(x, 0.02, fire_z),
 			Vector3(1.2, 0.04, 1.2), "mark", false)
 		# Marker for an optional target behind the wall; MapInfo.dummy_spawns.
 		_marker(targets, nm, Vector3(x, 0.1, wall_z - 3.0), 180.0)
 
-	_sign("SignPenFire", "FIRE FROM HERE", Vector3(-30.0, 2.4, fire_z), 56,
-		0.016, Color(1.0, 0.86, 0.35))
+	_sign("SignPenFire", "FIRE FROM HERE", Vector3(-30.0, 2.4, fire_z), FACE_S,
+		56, 0.016, Color(1.0, 0.86, 0.35))
 	# Witness backstop: impacts on it prove the round came through.
 	_box("PenBackstop", Vector3(-30.0, 1.6, -22.0), Vector3(34.0, 3.2, 1.0),
 		"wall")
@@ -447,12 +467,14 @@ func _add_middle_cover() -> void:
 
 
 func _add_sites_and_zones() -> void:
+	# Zone boxes reach a little below the floor: a character's position is its
+	# feet, so a box sitting exactly on y = 0 would be an exact-boundary test.
 	var sites := _holder("BombSites")
-	_area(sites, "A", Vector3(30.0, 2.0, -18.0), Vector3(18.0, 4.0, 12.0))
-	_area(sites, "B", Vector3(30.0, 2.0, 8.0), Vector3(18.0, 4.0, 12.0))
-	_sign("SignSiteA", "SITE A", Vector3(30.0, 4.6, -18.0), 88, 0.030,
+	_area(sites, "A", Vector3(30.0, 1.8, -18.0), Vector3(18.0, 4.4, 12.0))
+	_area(sites, "B", Vector3(30.0, 1.8, 8.0), Vector3(18.0, 4.4, 12.0))
+	_sign("SignSiteA", "SITE A", Vector3(30.0, 4.6, -18.0), FACE_W, 88, 0.030,
 		Color(1.0, 0.55, 0.35))
-	_sign("SignSiteB", "SITE B", Vector3(30.0, 4.6, 8.0), 88, 0.030,
+	_sign("SignSiteB", "SITE B", Vector3(30.0, 4.6, 8.0), FACE_W, 88, 0.030,
 		Color(1.0, 0.55, 0.35))
 
 	# Site A: crates plus a ramp-fed post-plant platform.
@@ -468,12 +490,14 @@ func _add_sites_and_zones() -> void:
 	_box("SiteBShoulder", Vector3(30.0, 0.55, 12.5), Vector3(8.0, 1.1, 0.8), "block")
 
 	var zones := _holder("BuyZones")
-	_area(zones, "ATK", Vector3(0.0, 3.0, 15.0), Vector3(26.0, 6.0, 10.0))
-	_area(zones, "DEF", Vector3(0.0, 3.0, -15.0), Vector3(26.0, 6.0, 10.0))
-	_sign("SignBuyATK", "ATK BUY ZONE", Vector3(0.0, 3.4, 15.0), 56, 0.016,
-		Color(0.95, 0.62, 0.30))
-	_sign("SignBuyDEF", "DEF BUY ZONE", Vector3(0.0, 3.4, -15.0), 56, 0.016,
-		Color(0.45, 0.72, 1.0))
+	_area(zones, "ATK", Vector3(0.0, 2.5, 15.0), Vector3(26.0, 7.0, 10.0))
+	_area(zones, "DEF", Vector3(0.0, 2.5, -15.0), Vector3(26.0, 7.0, 10.0))
+	# Placed on the far edge of each zone, facing the spawn, so a player standing
+	# on their spawn markers reads it head-on rather than edge-on.
+	_sign("SignBuyATK", "ATK BUY ZONE", Vector3(0.0, 3.4, 10.5), FACE_S, 56,
+		0.013, Color(0.95, 0.62, 0.30))
+	_sign("SignBuyDEF", "DEF BUY ZONE", Vector3(0.0, 3.4, -10.5), FACE_N, 56,
+		0.013, Color(0.45, 0.72, 1.0))
 
 
 func _add_spawns() -> void:

@@ -35,6 +35,13 @@ const RADAR_SPAN_CUTOFF := 1.0
 ## larger than the spawn count does not stack bodies inside each other.
 const SPAWN_NUDGE := 1.2
 
+## Vertical slack added to every zone volume. A CharacterBase reports its
+## position at its FEET, and zone boxes are authored resting on the floor, so
+## a player standing in a zone sits exactly on the box's bottom face — an
+## exact-boundary test that flips on floating-point noise. The slack is applied
+## on Y only, so a zone still cannot be entered from a floor above or below.
+const ZONE_Y_SLACK := 0.35
+
 const NODE_ATK_SPAWNS := "ATKSpawns"
 const NODE_DEF_SPAWNS := "DEFSpawns"
 const NODE_BOMB_SITES := "BombSites"
@@ -205,6 +212,7 @@ func _collect_volumes(area: Area3D, site_key: String, team: int, is_site: bool) 
 		found += 1
 		var inv := cs.global_transform.affine_inverse()
 		var half := _shape_half_extents(cs.shape)
+		half.y += ZONE_Y_SLACK
 		if is_site:
 			_site_keys.append(site_key)
 			_site_inv.append(inv)
