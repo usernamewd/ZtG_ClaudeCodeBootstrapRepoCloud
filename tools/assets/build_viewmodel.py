@@ -618,12 +618,12 @@ def build(make_mounted: bool, make_pov: bool) -> None:
     readme = _write_readme(W, markers, total, len(arm.data.bones), slots)
     written.append(readme)
 
-    if make_pov:
-        _pov_render(bpy, Vector)
-
     if make_mounted:
         p = _mounted(bpy, bc, Matrix, Vector, arm, mount)
         print(f"[debug] {p}")
+
+    if make_pov:                 # after --mounted so the rifle is in frame
+        _pov_render(bpy, Vector)
 
     for p in written:
         print(f"WROTE {p}")
